@@ -5,6 +5,10 @@ namespace HistoryService;
 
 public class CalcContext : DbContext
 {
+    public CalcContext(DbContextOptions<CalcContext> options) : base(options)
+    {
+        
+    }
     protected  override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder.UseSqlServer("Server=localhost:1433;Database=Calc;User Id=root;Password=test;");
@@ -16,4 +20,6 @@ public class CalcContext : DbContext
             .Property(p => p.Id)
             .ValueGeneratedOnAdd();
     }
+    
+    public DbSet<Operation> OperationTable { get; set; }
 }
