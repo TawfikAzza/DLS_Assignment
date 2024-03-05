@@ -5,5 +5,6 @@
         public double OperandB { get; set; }
         public OperationType OperationType { get; set; }
         public Result? Result { get; set; }
+
     }
 }
