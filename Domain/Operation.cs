@@ -4,6 +4,6 @@
         public required double OperandA { get; set; }
         public required double OperandB { get; set; }
         public required OperationType OperationType { get; set; }
-        public Result? Result { get; set; }
+        public required Result Result { get; set; }
     }
 }
