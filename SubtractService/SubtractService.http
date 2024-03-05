@@ -1,0 +1,6 @@
+@SubtractService_HostAddress = http://localhost:5044
+
+GET {{SubtractService_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
