@@ -13,7 +13,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Root", "Root", "{0DD12969-9
 		docker-compose.yml = docker-compose.yml
 	EndProjectSection
 EndProject
+
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Domain", "Domain\Domain.csproj", "{9B81F8E9-324C-487C-AD11-36479A03134C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Monitoring", "Monitoring\Monitoring.csproj", "{215E71A3-67BE-4F85-820C-E3C80DA95D11}"
+
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -37,9 +40,16 @@ Global
 		{F91A15FD-05B6-4554-A01D-B2E8AA4C5506}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F91A15FD-05B6-4554-A01D-B2E8AA4C5506}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F91A15FD-05B6-4554-A01D-B2E8AA4C5506}.Release|Any CPU.Build.0 = Release|Any CPU
+
 		{9B81F8E9-324C-487C-AD11-36479A03134C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{9B81F8E9-324C-487C-AD11-36479A03134C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9B81F8E9-324C-487C-AD11-36479A03134C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9B81F8E9-324C-487C-AD11-36479A03134C}.Release|Any CPU.Build.0 = Release|Any CPU
+
+		{215E71A3-67BE-4F85-820C-E3C80DA95D11}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{215E71A3-67BE-4F85-820C-E3C80DA95D11}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{215E71A3-67BE-4F85-820C-E3C80DA95D11}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{215E71A3-67BE-4F85-820C-E3C80DA95D11}.Release|Any CPU.Build.0 = Release|Any CPU
+
 	EndGlobalSection
 EndGlobal
