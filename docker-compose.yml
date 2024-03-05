@@ -1,77 +1,81 @@
 ﻿version: '3'
-  services:
-    seq:
-      image: datalust/seq
-      ports:
-        - 5341:5341
-        - 5342:80
-      volumes:
-        - rps_seq_data:/data
-      environment:
-        - ACCEPT_EULA=Y
-    zipkin:
-      image: openzipkin/zipkin
-      ports:
-        - 9411:9411
-    history-service:
-      image: history-service
-      build:
-        context: .
-        dockerfile: HistoryService/Dockerfile
-      ports:
-        - "81:80"
-      depends_on:
-        - mssql-service
-      networks:
-        - intranet
+
+services:
+  history-service:
+    image: history-service
+    build:
+      context: .
+      dockerfile: HistoryService/Dockerfile
+    ports:
+      - "81:80"
+    depends_on:
+      - mssql-service
+    networks:
+      - intranet
+    deploy:
       replicas: 3
-    subtract-service:
-      image: subtract-service
-      build:
-        context: .
-        dockerfile: SubtractService/Dockerfile
-      ports:
-        - "82:80"
-      depends_on:
-        - history-service
-      networks:
-        - intranet
+  subtract-service:
+    image: subtract-service
+    build:
+      context: .
+      dockerfile: SubtractService/Dockerfile
+    ports:
+      - "82:80"
+    depends_on:
+      - history-service
+    networks:
+      - intranet
+    deploy:
       replicas: 3
-    sum-service:
-      image: sum-service
-      build:
-        context: .
-        dockerfile: SumService/Dockerfile
-      ports:
-        - "83:80"
-      depends_on:
-        - history-service
-      networks:
-        - intranet
-      replicas: 3 
-    api-service:
-      image: api-service
-      build:
-        context: .
-        dockerfile: ApiService/Dockerfile
-      ports:
-        - "80:80"
-      depends_on:
-        - sum-service
-        - subtract-service
-        - history-service
-      networks:
-        - intranet
-    mssql-service:
-      image: mcr.microsoft.com/mssql/server:2019-latest
-        environment:
-            MSSQL_SA_PASSWORD: "test"
-            MSSQL_PID: "Developer"
-            ACCEPT_EULA: "Y"
-        ports:
-            - "1433:1433"
-        volumes:
-            - mssql-data:/var/opt/mssql
+  sum-service:
+    image: sum-service
+    build:
+      context: .
+      dockerfile: SumService/Dockerfile
+    ports:
+      - "83:80"
+    depends_on:
+      - history-service
+    networks:
+      - intranet
+    deploy:
+      replicas: 3
+  api-service:
+    image: api-service
+    build:
+      context: .
+      dockerfile: ApiService/Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - sum-service
+      - subtract-service
+      - history-service
+    networks:
+      - intranet
+  mssql-service:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    environment:
+      MSSQL_SA_PASSWORD: "test"
+      MSSQL_PID: "Developer"
+      ACCEPT_EULA: "Y"
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql-data:/var/opt/mssql
+  web-ui:
+    image: web-ui
+    build:
+      context: WebUI
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    networks:
+      - extranet
+      - intranet
+    deploy:
+      replicas: 3
+    
 networks:
   intranet:
     external: false
