@@ -1,6 +1,0 @@
-@SubstractService_HostAddress = http://localhost:5149
-
-GET {{SubstractService_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

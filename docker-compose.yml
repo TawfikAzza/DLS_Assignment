@@ -44,7 +44,7 @@ services:
     image: api-service
     build:
       context: .
-      dockerfile: ApiService/Dockerfile
+      dockerfile: API/Dockerfile
     ports:
       - "80:80"
     depends_on:
@@ -69,7 +69,7 @@ services:
       context: WebUI
       dockerfile: Dockerfile
     ports:
-      - "8080:80"
+      - "8080:8080"
     networks:
       - extranet
       - intranet
