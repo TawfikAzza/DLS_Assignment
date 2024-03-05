@@ -1,6 +1,6 @@
 ﻿namespace Domain {
     public class Problem {
-        public required double OperandA { get; set; }
-        public required double OperandB { get; set; }
+        public double OperandA { get; set; }
+        public double OperandB { get; set; }
     }
 }
