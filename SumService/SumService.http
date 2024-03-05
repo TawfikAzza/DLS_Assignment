@@ -1,0 +1,6 @@
+@SumService_HostAddress = http://localhost:5185
+
+GET {{SumService_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

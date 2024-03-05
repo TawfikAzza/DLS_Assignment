@@ -1,0 +1,68 @@
+﻿version: '3'
+  services:
+    history-service:
+      image: history-service
+      build:
+        context: .
+        dockerfile: HistoryService/Dockerfile
+      ports:
+        - "81:80"
+      depends_on:
+        - mssql-service
+      networks:
+        - intranet
+      replicas: 3
+    subtract-service:
+      image: subtract-service
+      build:
+        context: .
+        dockerfile: SubtractService/Dockerfile
+      ports:
+        - "82:80"
+      depends_on:
+        - history-service
+      networks:
+        - intranet
+      replicas: 3
+    sum-service:
+      image: sum-service
+      build:
+        context: .
+        dockerfile: SumService/Dockerfile
+      ports:
+        - "83:80"
+      depends_on:
+        - history-service
+      networks:
+        - intranet
+      replicas: 3 
+    api-service:
+      image: api-service
+      build:
+        context: .
+        dockerfile: ApiService/Dockerfile
+      ports:
+        - "80:80"
+      depends_on:
+        - sum-service
+        - subtract-service
+        - history-service
+      networks:
+        - intranet
+    mssql-service:
+      image: mcr.microsoft.com/mssql/server:2019-latest
+        environment:
+            MSSQL_SA_PASSWORD: "test"
+            MSSQL_PID: "Developer"
+            ACCEPT_EULA: "Y"
+        ports:
+            - "1433:1433"
+        volumes:
+            - mssql-data:/var/opt/mssql
+networks:
+  intranet:
+    external: false
+  extranet:
+    external: true
+volumes:
+  mssql-data:
