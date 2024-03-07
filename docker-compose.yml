@@ -1,11 +1,25 @@
 ﻿version: '3'
 
 services:
+  web-ui:
+    image: web-ui
+    build:
+      context: WebUI
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    networks:
+      - extranet
+      - intranet
+    deploy:
+      replicas: 1
   history-service:
     image: history-service
     build:
       context: .
       dockerfile: HistoryService/Dockerfile
+    environment:
+      - ASPNETCORE_URLS=http://+:80
     ports:
       - "81:80"
     depends_on:
@@ -13,7 +27,7 @@ services:
     networks:
       - intranet
     deploy:
-      replicas: 3
+      replicas: 1
   subtract-service:
     image: subtract-service
     build:
@@ -26,7 +40,7 @@ services:
     networks:
       - intranet
     deploy:
-      replicas: 3
+      replicas: 1
   sum-service:
     image: sum-service
     build:
@@ -39,7 +53,7 @@ services:
     networks:
       - intranet
     deploy:
-      replicas: 3
+      replicas: 1
   api-service:
     image: api-service
     build:
@@ -56,25 +70,14 @@ services:
   mssql-service:
     image: mcr.microsoft.com/mssql/server:2019-latest
     environment:
-      MSSQL_SA_PASSWORD: "test"
+      MSSQL_SA_PASSWORD: "Password123"
       MSSQL_PID: "Developer"
       ACCEPT_EULA: "Y"
     ports:
       - "1433:1433"
     volumes:
       - mssql-data:/var/opt/mssql
-  web-ui:
-    image: web-ui
-    build:
-      context: WebUI
-      dockerfile: Dockerfile
-    ports:
-      - "8080:8080"
-    networks:
-      - extranet
-      - intranet
-    deploy:
-      replicas: 3
+  
     
 networks:
   intranet:

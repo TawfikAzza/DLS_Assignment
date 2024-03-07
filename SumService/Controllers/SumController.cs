@@ -8,12 +8,10 @@ namespace SumService.Controllers {
 
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Result))]
-        public IActionResult Sum(Problem problem) {
+        public IActionResult Sum(Problem problem)
+        {
 
-            var result = new Result() {
-                Value = problem.OperandA + problem.OperandB
-            };
-
+            var result = problem.OperandA + problem.OperandB;
             return Ok(result);
         }
     }
