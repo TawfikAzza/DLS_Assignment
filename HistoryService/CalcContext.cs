@@ -11,7 +11,10 @@ public class CalcContext : DbContext
     }
     protected  override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        optionsBuilder.UseSqlServer("Server=localhost:1433;Database=Calc;User Id=root;Password=test;");
+        //optionsBuilder.UseSqlServer("Server=localhost:1433;Database=Calc;User Id=root;Password=test;");
+        optionsBuilder.UseSqlite(
+            "Data source=./db.db"
+        );
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

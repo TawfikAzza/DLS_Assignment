@@ -21,7 +21,7 @@ namespace Hist.Controllers {
             _context.Database.EnsureDeleted();
             _context.Database.EnsureCreated();
         }
-        [HttpGet]
+        [HttpGet("GetHistory")]
         public async Task<ActionResult<List<Operation>>> GetHistory()
         {
             try
@@ -33,6 +33,13 @@ namespace Hist.Controllers {
                 // Log the exception and return an appropriate error response
                 return StatusCode(500, "An error occurred while retrieving the history.");
             }
+        }
+        
+        [HttpPost("AddOperation")]
+        public void AddOperation(Operation operation)
+        {
+            _context.OperationTable.Add(operation);
+            _context.SaveChanges();
         }
     }
 }
