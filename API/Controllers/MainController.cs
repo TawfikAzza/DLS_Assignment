@@ -52,5 +52,22 @@ namespace API.Controllers {
             
             return StatusCode((int)response.StatusCode, response.ReasonPhrase);
         }
+        
+        [HttpGet("History")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(List<Operation>))]
+        public async Task<IActionResult> History() {
+            var client = _clientFactory.CreateClient();
+            var historyServiceUrl = "http://history-service:80";
+
+            var response = await client.GetAsync($"{historyServiceUrl}/History");
+            
+            if (response.IsSuccessStatusCode) {
+                var jsonResponse = await response.Content.ReadAsStringAsync();
+                var result = JsonSerializer.Deserialize<List<Operation>>(jsonResponse, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                return Ok(result);
+            } 
+            
+            return StatusCode((int)response.StatusCode, response.ReasonPhrase);
+        }
     }
 }
