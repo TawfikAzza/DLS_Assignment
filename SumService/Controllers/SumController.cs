@@ -1,4 +1,3 @@
-﻿using System.Diagnostics;
 using System.Text.Json;
 using Domain;
 using Microsoft.AspNetCore.Mvc;
@@ -38,7 +37,6 @@ namespace SumService.Controllers {
             using var activity = _tracer.StartActiveSpan("Sum");
            
             var result = problem.OperandA + problem.OperandB;
-            
             var operation = CreateOperationObject(problem, result);
             
             var client = _clientFactory.CreateClient();
@@ -62,6 +60,7 @@ namespace SumService.Controllers {
                 OperandB = problem.OperandB,
                 Result = result,
                 OperationType = "subtract"
+
             };
 
             return operation;
