@@ -7,7 +7,7 @@ namespace SumService.Controllers {
     public class SumController : ControllerBase {
 
         [HttpPost]
-        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(double))]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(double))] 
         public IActionResult Sum(Problem problem)
         {
 
