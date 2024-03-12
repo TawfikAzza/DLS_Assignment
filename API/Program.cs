@@ -1,3 +1,4 @@
+using Monitoring;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
@@ -9,22 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 var serviceName = "MyTracer";
 var serviceVersion = "1.0.0";
 
-builder.Services.AddOpenTelemetry().WithTracing(tcb =>
-{
-    tcb
-        .AddSource(serviceName)
-        .AddZipkinExporter(c =>
-        {
-            c.Endpoint = new Uri("http://zipkin:9411/api/v2/spans");
-        })
-        .AddConsoleExporter()
-        .SetResourceBuilder(
-            ResourceBuilder.CreateDefault()
-                .AddService(serviceName: serviceName, serviceVersion: serviceVersion))
-        .AddAspNetCoreInstrumentation()
-        .AddConsoleExporter();
-});
-
+builder.Services.AddOpenTelemetry().Setup();
 builder.Services.AddSingleton(TracerProvider.Default.GetTracer(serviceName));
 /*** END OF IMPORTANT CONFIGURATION ***/
 
