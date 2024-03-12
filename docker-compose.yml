@@ -65,6 +65,7 @@ services:
       dockerfile: API/Dockerfile
     environment:
       - ASPNETCORE_URLS=http://+:80
+      - ASPNETCORE_ENVIRONMENT=Development
     ports:
       - "80:80"
     depends_on:
