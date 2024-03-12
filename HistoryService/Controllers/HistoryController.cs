@@ -12,13 +12,12 @@ namespace Hist.Controllers {
         
         public HistoryController(CalcContext context) {
             _context = context;
-            
+            RebuildDB();
         }
 
         [HttpGet("rebuildDB")]
         public void RebuildDB()
         {
-            _context.Database.EnsureDeleted();
             _context.Database.EnsureCreated();
         }
         [HttpGet("GetHistory")]
@@ -36,10 +35,11 @@ namespace Hist.Controllers {
         }
         
         [HttpPost("AddOperation")]
-        public void AddOperation(Operation operation)
+        public Task AddOperation(Operation operation)
         {
             _context.OperationTable.Add(operation);
             _context.SaveChanges();
+            return Task.CompletedTask;
         }
     }
 }
