@@ -1,5 +1,8 @@
-﻿using System.Diagnostics;
 using System.Text.Json;
+
+using System.Diagnostics;
+using System.Text.Json;
+
 using Domain;
 using Microsoft.AspNetCore.Mvc;
 using OpenTelemetry;
@@ -30,7 +33,6 @@ namespace SumService.Controllers {
             using var activity = Monitoring.Monitoring.ActivitySource.StartActivity();
            
             var result = problem.OperandA + problem.OperandB;
-            
             var operation = CreateOperationObject(problem, result);
             
             var client = _clientFactory.CreateClient();
@@ -49,11 +51,13 @@ namespace SumService.Controllers {
         
         private Operation CreateOperationObject(Problem problem, double result) {
             var operation = new Operation() {
+
                 Id = 0,
                 OperandA = problem.OperandA,
                 OperandB = problem.OperandB,
                 Result = result,
                 OperationType = "subtract"
+
             };
 
             return operation;

@@ -20,7 +20,7 @@ namespace Hist.Controllers {
         {
             _context.Database.EnsureCreated();
         }
-        [HttpGet("GetHistory")]
+        [HttpGet]
         public async Task<ActionResult<List<Operation>>> GetHistory()
         {
             try
