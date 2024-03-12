@@ -7,6 +7,8 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddControllers();
 
+builder.Services.AddHttpClient();
+
 var app = builder.Build();
 
 app.MapControllers();

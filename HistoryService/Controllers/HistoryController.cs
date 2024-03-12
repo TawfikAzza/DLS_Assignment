@@ -12,13 +12,12 @@ namespace Hist.Controllers {
         
         public HistoryController(CalcContext context) {
             _context = context;
-            
+            RebuildDB();
         }
 
         [HttpGet("rebuildDB")]
         public void RebuildDB()
         {
-            _context.Database.EnsureDeleted();
             _context.Database.EnsureCreated();
         }
         [HttpGet("GetHistory")]
