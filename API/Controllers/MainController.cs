@@ -14,7 +14,7 @@ namespace API.Controllers {
         }
 
         [HttpPost("Sum")]
-        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Result))]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(double))]
         public async Task<IActionResult> Sum([FromBody] Problem problem) {
             var client = _clientFactory.CreateClient();
             var sumServiceUrl = "http://sum-service:80";
@@ -26,7 +26,7 @@ namespace API.Controllers {
             
             if (response.IsSuccessStatusCode) {
                 var jsonResponse = await response.Content.ReadAsStringAsync();
-                var result = JsonSerializer.Deserialize<Result>(jsonResponse, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                var result = JsonSerializer.Deserialize<double>(jsonResponse, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 return Ok(result);
             } 
             
@@ -34,7 +34,7 @@ namespace API.Controllers {
         }
         
         [HttpPost("Subtract")]
-        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Result))]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(double))]
         public async Task<IActionResult> Subtract([FromBody] Problem problem) {
             var client = _clientFactory.CreateClient();
             var sumServiceUrl = "http://subtract-service:80";
@@ -46,7 +46,7 @@ namespace API.Controllers {
             
             if (response.IsSuccessStatusCode) {
                 var jsonResponse = await response.Content.ReadAsStringAsync();
-                var result = JsonSerializer.Deserialize<Result>(jsonResponse, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                var result = JsonSerializer.Deserialize<double>(jsonResponse, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 return Ok(result);
             } 
             
