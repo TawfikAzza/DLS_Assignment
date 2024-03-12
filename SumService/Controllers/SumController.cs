@@ -1,6 +1,9 @@
-﻿using System.Text.Json;
+﻿using System.Diagnostics;
+using System.Text.Json;
 using Domain;
 using Microsoft.AspNetCore.Mvc;
+using OpenTelemetry;
+using OpenTelemetry.Context.Propagation;
 
 namespace SumService.Controllers {
     [ApiController]
@@ -17,6 +20,15 @@ namespace SumService.Controllers {
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(double))] 
         public async Task<IActionResult> Sum(Problem problem)
         {
+            var propagator = new TraceContextPropagator();
+            var parentContext = propagator.Extract(default, problem, (msg, key) =>
+            {
+                return new List<string>(new[]{msg.Headers.ContainsKey(key)?msg.Headers[key].ToString():String.Empty});
+            });
+            Baggage.Current = parentContext.Baggage;
+            using var consumerActivity = Monitoring.Monitoring.ActivitySource.StartActivity("ConsumerActivity", ActivityKind.Consumer, parentContext.ActivityContext);
+            using var activity = Monitoring.Monitoring.ActivitySource.StartActivity();
+           
             var result = problem.OperandA + problem.OperandB;
             
             var operation = CreateOperationObject(problem, result);
@@ -37,7 +49,7 @@ namespace SumService.Controllers {
         
         private Operation CreateOperationObject(Problem problem, double result) {
             var operation = new Operation() {
-                Id = _random.Next(9999999),
+                Id = 0,
                 OperandA = problem.OperandA,
                 OperandB = problem.OperandB,
                 Result = result,

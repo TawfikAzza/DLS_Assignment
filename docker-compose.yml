@@ -86,7 +86,25 @@ services:
       - "1433:1433"
     volumes:
       - mssql-data:/var/opt/mssql
-
+  zipkin:
+    image: openzipkin/zipkin
+    ports:
+      - 9411:9411
+    networks:
+      - extranet
+      - intranet
+  seq:
+    image: datalust/seq:latest
+    ports:
+      - 5341:80
+    networks:
+      - extranet
+      - intranet
+    environment:
+      ACCEPT_EULA: Y
+      SEQ_LICENSE: "your-seq-license"
+    volumes:
+      - seq-data:/data
 
 networks:
   intranet:
@@ -95,3 +113,4 @@ networks:
     external: true
 volumes:
   mssql-data:
+  seq-data:
