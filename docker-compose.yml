@@ -8,9 +8,10 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
+    depends_on: 
+      - api-service
     networks:
       - extranet
-      - intranet
     deploy:
       replicas: 1
   history-service:
@@ -33,6 +34,8 @@ services:
     build:
       context: .
       dockerfile: SubtractService/Dockerfile
+    environment:
+      - ASPNETCORE_URLS=http://+:80
     ports:
       - "82:80"
     depends_on:
@@ -61,6 +64,8 @@ services:
     build:
       context: .
       dockerfile: API/Dockerfile
+    environment:
+      - ASPNETCORE_URLS=http://+:80
     ports:
       - "80:80"
     depends_on:
@@ -69,6 +74,7 @@ services:
       - history-service
     networks:
       - intranet
+      - extranet
   mssql-service:
     image: mcr.microsoft.com/mssql/server:2019-latest
     environment:
@@ -79,8 +85,8 @@ services:
       - "1433:1433"
     volumes:
       - mssql-data:/var/opt/mssql
-  
-    
+
+
 networks:
   intranet:
     external: false
