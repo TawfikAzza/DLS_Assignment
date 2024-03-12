@@ -46,6 +46,8 @@ services:
     build:
       context: .
       dockerfile: SumService/Dockerfile
+    environment:
+      - ASPNETCORE_URLS=http://+:80
     ports:
       - "83:80"
     depends_on:
