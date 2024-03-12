@@ -71,20 +71,22 @@ services:
       - sum-service
       - subtract-service
       - history-service
+      - zipkin
     networks:
       - intranet
       - extranet
   zipkin:
     image: openzipkin/zipkin
     ports:
-      - 9411:9411
+      - "9411:9411"
     networks:
       - extranet
       - intranet
   seq:
     image: datalust/seq:latest
     ports:
-      - 5341:80
+      - "5341:5341" # Receive log events over HTTP
+      - "5342:80" # Seq web UI (local:redirected)
     networks:
       - extranet
       - intranet

@@ -4,6 +4,7 @@ using Domain;
 using Microsoft.AspNetCore.Mvc;
 using OpenTelemetry;
 using OpenTelemetry.Context.Propagation;
+using OpenTelemetry.Trace;
 
 namespace API.Controllers {
     [ApiController]
@@ -11,16 +12,23 @@ namespace API.Controllers {
     public class MainController : ControllerBase {
         
         private readonly IHttpClientFactory _clientFactory;
+        
+        /*** START OF IMPORTANT CONFIGURATION ***/
+        private readonly Tracer _tracer;
 
-        public MainController(IHttpClientFactory httpClientFactory) {
+        public MainController(IHttpClientFactory httpClientFactory, Tracer tracer) {
             _clientFactory = httpClientFactory;
+            _tracer = tracer;
         }
+        
+        /*** END OF IMPORTANT CONFIGURATION ***/
 
         [HttpPost("Sum")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(double))]
         public async Task<IActionResult> Sum([FromBody] Problem problem)
         {
-            using var activity = Monitoring.Monitoring.ActivitySource.StartActivity();
+            /*** HOW TO START TRACING ***/
+            using var activity = _tracer.StartActiveSpan("Sum");
 
             var client = _clientFactory.CreateClient();
             var sumServiceUrl = "http://sum-service:80";

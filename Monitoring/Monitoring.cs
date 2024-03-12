@@ -10,31 +10,31 @@ namespace Monitoring;
 
 public static class Monitoring
 {
-    public static readonly ActivitySource ActivitySource = new("CALC_" + Assembly.GetEntryAssembly()?.GetName().Name , "1.0.0");
-   // private static TracerProvider _tracerProvider;
-
+    public static ILogger Log => Serilog.Log.Logger;
+    
+    public static readonly string ServiceName = Assembly.GetCallingAssembly().GetName().Name ?? "Unknown";
+    public static TracerProvider TracerProvider;
+    public static ActivitySource ActivitySource = new(ServiceName);
+    
     static Monitoring()
     {
-        // Configure tracing
-        var serviceName = Assembly.GetExecutingAssembly().GetName().Name;
-        var version = "1.0.0";
-
-        Sdk.CreateTracerProviderBuilder()
-            .AddZipkinExporter(options =>
-            {
-                options.Endpoint = new Uri("http://zipkin:9411/api/v2/spans");
-            })
-            .AddConsoleExporter()
-            .AddSource(ActivitySource.Name)
-            .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(serviceName: ActivitySource.Name))
-            .Build();
-        
-        // Configure logging
-        Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Debug()
-            .Enrich.WithSpan()
-            .WriteTo.Seq("http://localhost:5341")
+        //Serilog
+        Serilog.Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Verbose()
             .WriteTo.Console()
+            .WriteTo.Seq("http://seq:5341")
+            .Enrich.WithSpan()
             .CreateLogger();
+        
+        //OpenTelemetry
+        TracerProvider = Sdk.CreateTracerProviderBuilder()
+            .AddSource(ServiceName)
+            .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(ServiceName))
+            .AddConsoleExporter()
+            .AddZipkinExporter(o =>
+            {
+                o.Endpoint = new Uri("http://localhost:9411/api/v2/spans");
+            })
+            .Build();
     }
 }
