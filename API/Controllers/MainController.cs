@@ -22,7 +22,7 @@ namespace API.Controllers {
         {
             using var activity = Monitoring.Monitoring.ActivitySource.StartActivity();
 
-                var client = _clientFactory.CreateClient();
+            var client = _clientFactory.CreateClient();
             var sumServiceUrl = "http://sum-service:80";
             
             var activityContext = activity?.Context ?? Activity.Current?.Context ?? default;

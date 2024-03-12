@@ -11,7 +11,7 @@ namespace Monitoring;
 public static class Monitoring
 {
     public static readonly ActivitySource ActivitySource = new("CALC_" + Assembly.GetEntryAssembly()?.GetName().Name , "1.0.0");
-    private static TracerProvider _tracerProvider;
+   // private static TracerProvider _tracerProvider;
 
     static Monitoring()
     {
@@ -19,8 +19,11 @@ public static class Monitoring
         var serviceName = Assembly.GetExecutingAssembly().GetName().Name;
         var version = "1.0.0";
 
-        _tracerProvider = Sdk.CreateTracerProviderBuilder()
-            .AddZipkinExporter()
+        Sdk.CreateTracerProviderBuilder()
+            .AddZipkinExporter(options =>
+            {
+                options.Endpoint = new Uri("http://zipkin:9411/api/v2/spans");
+            })
             .AddConsoleExporter()
             .AddSource(ActivitySource.Name)
             .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(serviceName: ActivitySource.Name))

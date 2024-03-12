@@ -23,8 +23,6 @@ services:
       - ASPNETCORE_URLS=http://+:80
     ports:
       - "81:80"
-    depends_on:
-      - mssql-service
     networks:
       - intranet
     deploy:
@@ -76,16 +74,6 @@ services:
     networks:
       - intranet
       - extranet
-  mssql-service:
-    image: mcr.microsoft.com/mssql/server:2019-latest
-    environment:
-      MSSQL_SA_PASSWORD: "Password123"
-      MSSQL_PID: "Developer"
-      ACCEPT_EULA: "Y"
-    ports:
-      - "1433:1433"
-    volumes:
-      - mssql-data:/var/opt/mssql
   zipkin:
     image: openzipkin/zipkin
     ports:
@@ -102,7 +90,6 @@ services:
       - intranet
     environment:
       ACCEPT_EULA: Y
-      SEQ_LICENSE: "your-seq-license"
     volumes:
       - seq-data:/data
 
@@ -112,5 +99,4 @@ networks:
   extranet:
     external: true
 volumes:
-  mssql-data:
   seq-data:

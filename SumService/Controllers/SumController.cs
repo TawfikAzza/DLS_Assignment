@@ -21,9 +21,17 @@ namespace SumService.Controllers {
         public async Task<IActionResult> Sum(Problem problem)
         {
             var propagator = new TraceContextPropagator();
-            var parentContext = propagator.Extract(default, problem, (msg, key) =>
+            // var parentContext = propagator.Extract(default, problem, (msg, key) =>
+            // {
+            //     return new List<string>(new[]{msg.Headers.ContainsKey(key)?msg.Headers[key].ToString():String.Empty});
+            // });
+            var parentContext = propagator.Extract(default, Request, (request, key) =>
             {
-                return new List<string>(new[]{msg.Headers.ContainsKey(key)?msg.Headers[key].ToString():String.Empty});
+                if (Request.Headers.TryGetValue(key, out var values))
+                {
+                    return new[] { values.ToString() };
+                }
+                return Array.Empty<string>();
             });
             Baggage.Current = parentContext.Baggage;
             using var consumerActivity = Monitoring.Monitoring.ActivitySource.StartActivity("ConsumerActivity", ActivityKind.Consumer, parentContext.ActivityContext);
