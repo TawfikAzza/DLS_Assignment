@@ -1,12 +1,16 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import {onMounted, ref} from 'vue';
 
-const history = ref<any>([
-  { a: 1, b: 2, operation: '+', result: 3 },
-  { a: 3, b: 2, operation: '-', result: 1 },
-  { a: 4, b: 2, operation: '*', result: 8 },
-  { a: 6, b: 2, operation: '/', result: 3 },
-]);
+onMounted(() => {
+  fetchHistory();
+});
+
+const history = ref<any>([]);
+
+const fetchHistory = async () => {
+  const response = await fetch('http://localhost/Main/History');
+  history.value = await response.json();
+};
 
 const a = ref<number | null>(null);
 const b = ref<number | null>(null);
