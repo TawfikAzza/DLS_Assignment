@@ -12,7 +12,7 @@ const a = ref<number | null>(null);
 const b = ref<number | null>(null);
 const operation = ref<string | null>(null);
 
-const calculate = () => { //TODO: API call
+const calculate = async () => { //TODO: API call
   if (a.value === null
       || b.value === null
       || operation.value === null) {
@@ -24,36 +24,35 @@ const calculate = () => { //TODO: API call
     operandB: b.value,
   };
 
-  let result = null;
-
+  const request = {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(problem),
+  };
+  let requestUrlRoot = 'http://localhost/Main';
   if (operation.value === '+') {
-    //Send an HTTP request with problem as the body
-    fetch('http://sum-service:80/Sum', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(problem),
-    }).then(response => response.json())
-      .then(data => {
-        console.log('Success:', data);
-        result = data.value; // { value: 3 }
-      })
-      .catch((error) => {
-        console.error('Error:', error);
-      });
+    requestUrlRoot += '/Sum';
+  } else if (operation.value === '-') {
+    requestUrlRoot += '/Subtract';
   } else {
-    console.log('Operand not supported');
+    console.error('Invalid operation"' + operation.value + '"');
+    return;
   }
 
-  console.log(result);
+  //Get the result from the server
+  const response = await fetch(requestUrlRoot, request);
+  const result = await response.json();
 
-  history.value.unshift({
-    a: a.value,
-    b: b.value,
-    operation: operation.value,
-    result: result,
-  });
+  //Add the result to the history
+  history.value
+    .push({
+      a: a.value,
+      b: b.value,
+      operation: operation.value,
+      result: result,
+    });
 
   a.value = null;
   b.value = null;
