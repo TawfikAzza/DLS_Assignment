@@ -1,12 +1,9 @@
 using System.Text.Json;
-
-using System.Diagnostics;
-using System.Text.Json;
-
 using Domain;
 using Microsoft.AspNetCore.Mvc;
 using OpenTelemetry;
 using OpenTelemetry.Context.Propagation;
+using OpenTelemetry.Trace;
 
 namespace SumService.Controllers {
     [ApiController]
@@ -14,9 +11,11 @@ namespace SumService.Controllers {
     public class SumController : ControllerBase {
         private readonly IHttpClientFactory _clientFactory;
         private readonly Random _random = new Random(99999);
+        private readonly Tracer _tracer;
 
-        public SumController(IHttpClientFactory httpClientFactory) {
+        public SumController(IHttpClientFactory httpClientFactory, Tracer tracer) {
             _clientFactory = httpClientFactory;
+            _tracer = tracer;
         }
 
         [HttpPost]
@@ -24,13 +23,18 @@ namespace SumService.Controllers {
         public async Task<IActionResult> Sum(Problem problem)
         {
             var propagator = new TraceContextPropagator();
-            var parentContext = propagator.Extract(default, problem, (msg, key) =>
+            var parentContext = propagator.Extract(default, problem, (request, key) =>
             {
-                return new List<string>(new[]{msg.Headers.ContainsKey(key)?msg.Headers[key].ToString():String.Empty});
+                return new List<string>(new[]
+                {
+                    request.Headers.ContainsKey(key) ?
+                        request.Headers[key].ToString() :
+                        String.Empty
+                });
             });
             Baggage.Current = parentContext.Baggage;
-            using var consumerActivity = Monitoring.Monitoring.ActivitySource.StartActivity("ConsumerActivity", ActivityKind.Consumer, parentContext.ActivityContext);
-            using var activity = Monitoring.Monitoring.ActivitySource.StartActivity();
+            using var consumerActivity = _tracer.StartActiveSpan("ConsumerActivity");
+            using var activity = _tracer.StartActiveSpan("Sum");
            
             var result = problem.OperandA + problem.OperandB;
             var operation = CreateOperationObject(problem, result);
@@ -51,7 +55,6 @@ namespace SumService.Controllers {
         
         private Operation CreateOperationObject(Problem problem, double result) {
             var operation = new Operation() {
-
                 Id = 0,
                 OperandA = problem.OperandA,
                 OperandB = problem.OperandB,

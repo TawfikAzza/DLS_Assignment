@@ -10,28 +10,38 @@ namespace Monitoring;
 
 public static class Monitoring
 {
-    public static readonly ActivitySource ActivitySource = new("CALC_" + Assembly.GetEntryAssembly()?.GetName().Name , "1.0.0");
-    private static TracerProvider _tracerProvider;
-
+    public static ILogger Log => Serilog.Log.Logger;
+    
     static Monitoring()
     {
-        // Configure tracing
-        var serviceName = Assembly.GetExecutingAssembly().GetName().Name;
-        var version = "1.0.0";
-
-        _tracerProvider = Sdk.CreateTracerProviderBuilder()
-            .AddZipkinExporter()
-            .AddConsoleExporter()
-            .AddSource(ActivitySource.Name)
-            .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(serviceName: ActivitySource.Name))
-            .Build();
-        
-        // Configure logging
-        Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Debug()
-            .Enrich.WithSpan()
-            .WriteTo.Seq("http://localhost:5341")
+        //Serilog
+        Serilog.Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Verbose()
             .WriteTo.Console()
+            .WriteTo.Seq("http://seq:5341")
+            .Enrich.WithSpan()
             .CreateLogger();
+    }
+    
+    public static OpenTelemetryBuilder Setup(this OpenTelemetryBuilder builder)
+    {
+        var serviceName = "MyTracer";
+        var serviceVersion = "1.0.0";
+        
+        return builder.WithTracing(tcb =>
+        {
+            tcb
+                .AddSource(serviceName)
+                .AddZipkinExporter(c =>
+                {
+                    c.Endpoint = new Uri("http://zipkin:9411/api/v2/spans");
+                })
+                .AddConsoleExporter()
+                .SetResourceBuilder(
+                    ResourceBuilder.CreateDefault()
+                        .AddService(serviceName: serviceName, serviceVersion: serviceVersion))
+                .AddAspNetCoreInstrumentation()
+                .AddConsoleExporter();
+        });
     }
 }
