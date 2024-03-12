@@ -1,6 +1,9 @@
-﻿using System.Text.Json;
+﻿using System.Diagnostics;
+using System.Text.Json;
 using Domain;
 using Microsoft.AspNetCore.Mvc;
+using OpenTelemetry;
+using OpenTelemetry.Context.Propagation;
 
 namespace API.Controllers {
     [ApiController]
@@ -15,9 +18,20 @@ namespace API.Controllers {
 
         [HttpPost("Sum")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(double))]
-        public async Task<IActionResult> Sum([FromBody] Problem problem) {
-            var client = _clientFactory.CreateClient();
+        public async Task<IActionResult> Sum([FromBody] Problem problem)
+        {
+            using var activity = Monitoring.Monitoring.ActivitySource.StartActivity();
+
+                var client = _clientFactory.CreateClient();
             var sumServiceUrl = "http://sum-service:80";
+            
+            var activityContext = activity?.Context ?? Activity.Current?.Context ?? default;
+            var propagationContext = new PropagationContext(activityContext, Baggage.Current);
+            var propagator = new TraceContextPropagator();
+            propagator.Inject(propagationContext, problem, (msg, key, value) =>
+            {
+                msg.Headers.Add(key, value);
+            });
             
             var jsonRequest = JsonSerializer.Serialize(problem);
             var content = new StringContent(jsonRequest, System.Text.Encoding.UTF8, "application/json");
