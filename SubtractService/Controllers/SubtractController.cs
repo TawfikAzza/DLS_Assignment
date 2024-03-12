@@ -1,26 +1,28 @@
-﻿using System.Text.Json;
+﻿using System.Numerics;
+using System.Text.Json;
 using Domain;
 using Microsoft.AspNetCore.Mvc;
 
-namespace SumService.Controllers {
+namespace SubtractService.Controllers {
     [ApiController]
     [Route("[controller]")]
-    public class SumController : ControllerBase {
+    public class SubtractController : ControllerBase {
+        
         private readonly IHttpClientFactory _clientFactory;
         private readonly Random _random = new Random(99999);
 
-        public SumController(IHttpClientFactory httpClientFactory) {
+        public SubtractController(IHttpClientFactory httpClientFactory) {
             _clientFactory = httpClientFactory;
         }
 
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(double))] 
-        public async Task<IActionResult> Sum(Problem problem)
+        public async Task<IActionResult> Subtract(Problem problem)
         {
-            var result = problem.OperandA + problem.OperandB;
-            
+            var result = problem.OperandA - problem.OperandB;
+
             var operation = CreateOperationObject(problem, result);
-            
+
             var client = _clientFactory.CreateClient();
             var historyService = "http://history-service:80";
             
@@ -31,10 +33,11 @@ namespace SumService.Controllers {
             
             if (response.IsSuccessStatusCode) {
                 return Ok(result);
-            }
+            } 
+            
             return StatusCode((int)response.StatusCode, response.ReasonPhrase);
         }
-        
+
         private Operation CreateOperationObject(Problem problem, double result) {
             var operation = new Operation() {
                 Id = _random.Next(9999999),

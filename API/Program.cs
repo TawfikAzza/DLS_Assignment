@@ -24,6 +24,13 @@ builder.Services.AddControllers();
 // HERE we add the IHttpClientFactory
 builder.Services.AddHttpClient();
 
+builder.Services.AddCors(o => o.AddPolicy("MyPolicy", builder =>
+{
+    builder.AllowAnyOrigin()
+        .AllowAnyMethod()
+        .AllowAnyHeader();
+}));
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -38,6 +45,6 @@ app.UseCors(MyAllowSpecificOrigins);
 // HERE we map the controllers
 app.MapControllers();
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 
 app.Run();
