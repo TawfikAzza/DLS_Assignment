@@ -1,5 +1,9 @@
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
+using API.Models;
+using API.Services;
 
-namespace API.Services;
 public class FailedRequestProcessor : BackgroundService
 {
     private readonly IFailedRequestQueue _failedRequestQueue;
@@ -11,41 +15,62 @@ public class FailedRequestProcessor : BackgroundService
         _clientFactory = clientFactory;
     }
 
-protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-{
-    while (!stoppingToken.IsCancellationRequested)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        // Assume IsServiceHealthy is a method that checks the health of your service.
-        if (await IsServiceHealthy("http://sum-service/health", stoppingToken))
+        while (!stoppingToken.IsCancellationRequested)
         {
-            while (_failedRequestQueue.Count > 0 && !stoppingToken.IsCancellationRequested)
+            if (await IsServiceHealthy("http://sum-service/health", stoppingToken))
             {
-                var failedRequest = _failedRequestQueue.Dequeue();
-                if (failedRequest != null)
+                while (_failedRequestQueue.Count > 0 && !stoppingToken.IsCancellationRequested)
                 {
-                    // Logic to resend the failed request
-                    // Ensure you handle potential failures of this resend attempt as well
+                    var failedRequest = _failedRequestQueue.Dequeue();
+                    if (failedRequest != null)
+                    {
+                        try
+                        {
+                            var client = _clientFactory.CreateClient();
+                            var httpRequestMessage = new HttpRequestMessage(failedRequest.Method, failedRequest.Url)
+                            {
+                                Content = new StringContent(failedRequest.Body, Encoding.UTF8, "application/json")
+                            };
+
+                            foreach (var header in failedRequest.Headers)
+                            {
+                                httpRequestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value);
+                            }
+
+                            var response = await client.SendAsync(httpRequestMessage, stoppingToken);
+
+                            // Handle response as needed
+                            if (!response.IsSuccessStatusCode)
+                            {
+                                // Optionally handle failed resend attempts here
+                            }
+                        }
+                        catch
+                        {
+                            // Optionally handle exceptions from resend attempts here
+                        }
+                    }
                 }
             }
+
+            await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
         }
+    }
 
-        // Wait for a while before the next health check
-        await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
-    }
-}
-
-private async Task<bool> IsServiceHealthy(string healthCheckUrl, CancellationToken stoppingToken)
-{
-    try
+    private async Task<bool> IsServiceHealthy(string healthCheckUrl, CancellationToken stoppingToken)
     {
-        var client = _clientFactory.CreateClient();
-        var response = await client.GetAsync(healthCheckUrl, stoppingToken);
-        return response.IsSuccessStatusCode;
+        try
+        {
+            var client = _clientFactory.CreateClient();
+            var response = await client.GetAsync(healthCheckUrl, stoppingToken);
+            return response.IsSuccessStatusCode;
+        }
+        catch
+        {
+            // Optionally handle exceptions from the health check here
+            return false;
+        }
     }
-    catch
-    {
-        // Log the exception or handle it as appropriate
-        return false;
-    }
-}
 }
