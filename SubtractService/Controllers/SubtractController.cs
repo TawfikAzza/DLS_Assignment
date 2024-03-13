@@ -40,7 +40,7 @@ namespace SubtractService.Controllers {
 
         private Operation CreateOperationObject(Problem problem, double result) {
             var operation = new Operation() {
-                Id = _random.Next(9999999),
+                Id = 0,
                 OperandA = problem.OperandA,
                 OperandB = problem.OperandB,
                 Result = result,
