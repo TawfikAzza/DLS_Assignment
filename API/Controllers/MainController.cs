@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using OpenTelemetry;
 using OpenTelemetry.Context.Propagation;
 using OpenTelemetry.Trace;
+using Polly.CircuitBreaker;
 
 namespace API.Controllers {
     [ApiController]
@@ -27,33 +28,40 @@ namespace API.Controllers {
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(double))]
         public async Task<IActionResult> Sum([FromBody] Problem problem)
         {
-            /*** HOW TO START TRACING ***/
             using var activity = _tracer.StartActiveSpan("Sum");
-
-            var client = _clientFactory.CreateClient();
-            var sumServiceUrl = "http://sum-service:80";
-            
-            var activityContext = activity?.Context ?? Activity.Current?.Context ?? default;
-            var propagationContext = new PropagationContext(activityContext, Baggage.Current);
-            var propagator = new TraceContextPropagator();
-            propagator.Inject(propagationContext, problem, (msg, key, value) =>
+            try
             {
-                msg.Headers.Add(key, value);
-            });
-            
-            var jsonRequest = JsonSerializer.Serialize(problem);
-            var content = new StringContent(jsonRequest, System.Text.Encoding.UTF8, "application/json");
-            
-            var response = await client.PostAsync($"{sumServiceUrl}/Sum", content);
-            
-            if (response.IsSuccessStatusCode) {
+                var client = _clientFactory.CreateClient("SumServiceClient");
+                var sumServiceUrl = "http://sum-service:80";
+        
+                var activityContext = activity?.Context ?? Activity.Current?.Context ?? default;
+                var propagationContext = new PropagationContext(activityContext, Baggage.Current);
+                var propagator = new TraceContextPropagator();
+                propagator.Inject(propagationContext, problem, (msg, key, value) =>
+                {
+                    msg.Headers.Add(key, value);
+                });
+
+                var jsonRequest = JsonSerializer.Serialize(problem);
+                var content = new StringContent(jsonRequest, System.Text.Encoding.UTF8, "application/json");
+        
+                var response = await client.PostAsync($"{sumServiceUrl}/Sum", content);
+                if (!response.IsSuccessStatusCode) throw new HttpRequestException();
+        
                 var jsonResponse = await response.Content.ReadAsStringAsync();
                 var result = JsonSerializer.Deserialize<double>(jsonResponse, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 return Ok(result);
-            } 
-            
-            return StatusCode((int)response.StatusCode, response.ReasonPhrase);
+            }
+            catch (BrokenCircuitException)
+            {
+                return Ok(problem.OperandA + problem.OperandB);
+            }
+            catch (HttpRequestException)
+            {
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, "Service unavailable");
+            }
         }
+
         
         [HttpPost("Subtract")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(double))]

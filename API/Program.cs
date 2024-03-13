@@ -1,7 +1,6 @@
 using Polly;
 using Polly.Extensions.Http;
 using Monitoring;
-using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
 
@@ -50,7 +49,10 @@ builder.Services.AddHttpClient("SumServiceClient", client =>
     {
         client.BaseAddress = new Uri("http://sum-service:80");
     })
-    .AddPolicyHandler(GetCircuitBreakerPolicy());
+    .AddPolicyHandler(HttpPolicyExtensions
+        .HandleTransientHttpError()
+        .CircuitBreakerAsync(2, TimeSpan.FromSeconds(30)));
+
 
 var app = builder.Build();
 
@@ -74,5 +76,5 @@ static IAsyncPolicy<HttpResponseMessage> GetCircuitBreakerPolicy()
 {
     return HttpPolicyExtensions
         .HandleTransientHttpError()
-        .CircuitBreakerAsync(2, TimeSpan.FromSeconds(30));
+        .CircuitBreakerAsync(1, TimeSpan.FromSeconds(30));
 }
