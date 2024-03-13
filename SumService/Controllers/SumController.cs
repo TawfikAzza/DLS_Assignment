@@ -36,7 +36,7 @@ namespace SumService.Controllers {
             try {
                 var operation = CreateOperationObject(problem, result);
 
-                var client = _clientFactory.CreateClient();
+                var client = _clientFactory.CreateClient("HistoryServiceClient");
                 var historyService = "http://history-service:80";
 
                 var jsonRequest = JsonSerializer.Serialize(operation);
