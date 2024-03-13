@@ -1,7 +1,11 @@
-﻿using System.Numerics;
+﻿using System.Diagnostics;
+using System.Numerics;
 using System.Text.Json;
 using Domain;
 using Microsoft.AspNetCore.Mvc;
+using OpenTelemetry;
+using OpenTelemetry.Context.Propagation;
+using OpenTelemetry.Trace;
 using Polly.CircuitBreaker;
 
 namespace SubtractService.Controllers {
@@ -9,20 +13,33 @@ namespace SubtractService.Controllers {
     [Route("[controller]")]
     public class SubtractController : ControllerBase {
         private readonly IHttpClientFactory _clientFactory;
-
-        public SubtractController(IHttpClientFactory httpClientFactory) {
+        private readonly Tracer _tracer;
+        public SubtractController(IHttpClientFactory httpClientFactory, Tracer tracer) {
             _clientFactory = httpClientFactory;
+            _tracer = tracer;
         }
 
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(double))]
         public async Task<IActionResult> Subtract(Problem problem) {
+            var propagatorExtract = new TraceContextPropagator();
+            var parentContext = propagatorExtract.Extract(default, problem, (request, key) => {
+                return new List<string>(new[] {
+                    request.Headers.ContainsKey(key) ? request.Headers[key].ToString() : String.Empty
+                });
+            });
+            Baggage.Current = parentContext.Baggage;
+            using var consumerActivity = _tracer.StartActiveSpan("ConsumerActivity");
+            using var activity = _tracer.StartActiveSpan("Subtract");
             var result = problem.OperandA - problem.OperandB;
             var operation = CreateOperationObject(problem, result);
             try {
                 var client = _clientFactory.CreateClient("HistoryServiceClient");
                 var historyService = "http://history-service:80";
-
+                var activityContext = activity?.Context ?? Activity.Current?.Context ?? default;
+                var propagationContext = new PropagationContext(activityContext, Baggage.Current);
+                var propagator = new TraceContextPropagator();
+                propagator.Inject(propagationContext, problem, (msg, key, value) => { msg.Headers.Add(key, value); });
                 var jsonRequest = JsonSerializer.Serialize(operation);
                 var content = new StringContent(jsonRequest, System.Text.Encoding.UTF8, "application/json");
 

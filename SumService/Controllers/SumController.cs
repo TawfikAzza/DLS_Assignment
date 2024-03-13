@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using Domain;
 using Microsoft.AspNetCore.Mvc;
@@ -22,8 +23,8 @@ namespace SumService.Controllers {
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(double))]
         public async Task<IActionResult> Sum(Problem problem) {
-            var propagator = new TraceContextPropagator();
-            var parentContext = propagator.Extract(default, problem, (request, key) => {
+            var propagatorExtract = new TraceContextPropagator();
+            var parentContext = propagatorExtract.Extract(default, problem, (request, key) => {
                 return new List<string>(new[] {
                     request.Headers.ContainsKey(key) ? request.Headers[key].ToString() : String.Empty
                 });
@@ -38,7 +39,11 @@ namespace SumService.Controllers {
 
                 var client = _clientFactory.CreateClient("HistoryServiceClient");
                 var historyService = "http://history-service:80";
-
+                var activityContext = activity?.Context ?? Activity.Current?.Context ?? default;
+                var propagationContext = new PropagationContext(activityContext, Baggage.Current);
+                var propagatorInject = new TraceContextPropagator();
+                propagatorInject.Inject(propagationContext, operation, (msg, key, value) => { msg.Headers.Add(key, value); });
+                
                 var jsonRequest = JsonSerializer.Serialize(operation);
                 var content = new StringContent(jsonRequest, System.Text.Encoding.UTF8, "application/json");
 
