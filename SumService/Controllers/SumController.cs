@@ -59,7 +59,7 @@ namespace SumService.Controllers {
                 OperandA = problem.OperandA,
                 OperandB = problem.OperandB,
                 Result = result,
-                OperationType = "subtract"
+                OperationType = "sum"
 
             };
 
