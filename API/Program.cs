@@ -2,7 +2,7 @@ using Polly;
 using Polly.Extensions.Http;
 using Monitoring;
 using OpenTelemetry.Trace;
-
+using API.Services;
 
 var  MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 
@@ -67,6 +67,7 @@ builder.Services.AddHttpClient("SubtractServiceClient", client => {
     })
     .AddPolicyHandler(policies);
 
+builder.Services.AddSingleton<IFailedRequestQueue, InMemoryFailedRequestQueue>();
 
 var app = builder.Build();
 
