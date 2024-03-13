@@ -85,10 +85,3 @@ app.MapControllers();
 //app.UseHttpsRedirection();
 
 app.Run();
-
-static IAsyncPolicy<HttpResponseMessage> GetCircuitBreakerPolicy()
-{
-    return HttpPolicyExtensions
-        .HandleTransientHttpError()
-        .CircuitBreakerAsync(1, TimeSpan.FromSeconds(30));
-}
