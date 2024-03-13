@@ -1,3 +1,6 @@
+using Polly;
+using Polly.Extensions.Http;
+
 var  MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 
 var builder = WebApplication.CreateBuilder(args);
@@ -31,6 +34,12 @@ builder.Services.AddCors(o => o.AddPolicy("MyPolicy", builder =>
         .AllowAnyHeader();
 }));
 
+builder.Services.AddHttpClient("SumServiceClient", client =>
+    {
+        client.BaseAddress = new Uri("http://sum-service:80");
+    })
+    .AddPolicyHandler(GetCircuitBreakerPolicy());
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -48,3 +57,10 @@ app.MapControllers();
 //app.UseHttpsRedirection();
 
 app.Run();
+
+static IAsyncPolicy<HttpResponseMessage> GetCircuitBreakerPolicy()
+{
+    return HttpPolicyExtensions
+        .HandleTransientHttpError()
+        .CircuitBreakerAsync(2, TimeSpan.FromSeconds(30));
+}
