@@ -14,6 +14,8 @@ var serviceVersion = "1.0.0";
 
 builder.Services.AddOpenTelemetry().Setup();
 builder.Services.AddSingleton(TracerProvider.Default.GetTracer(serviceName));
+builder.Services.AddSingleton<IFailedRequestQueue, InMemoryFailedRequestQueue>();
+
 /*** END OF IMPORTANT CONFIGURATION ***/
 
 builder.Services.AddCors(options =>
@@ -67,7 +69,7 @@ builder.Services.AddHttpClient("SubtractServiceClient", client => {
     })
     .AddPolicyHandler(policies);
 
-builder.Services.AddSingleton<IFailedRequestQueue, InMemoryFailedRequestQueue>();
+builder.Services.AddHostedService<FailedRequestProcessor>();
 
 var app = builder.Build();
 

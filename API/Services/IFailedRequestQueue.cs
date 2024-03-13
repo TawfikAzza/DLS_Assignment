@@ -4,7 +4,7 @@ namespace API.Services
     public interface IFailedRequestQueue
     {
         void Enqueue(FailedRequest request);
-        FailedRequest Dequeue();
+        FailedRequest? Dequeue();
         int Count { get; }
     }
 }

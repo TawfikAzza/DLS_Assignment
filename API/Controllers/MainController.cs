@@ -1,79 +1,136 @@
 ﻿using System.Diagnostics;
 using System.Text.Json;
-using Domain; // Domain models, potentially for request/response objects
+using Domain;
 using Microsoft.AspNetCore.Mvc;
-using OpenTelemetry; // For tracing and telemetry
-using OpenTelemetry.Context.Propagation; // For context propagation in distributed tracing
-using OpenTelemetry.Trace; // For tracing
-using Polly.CircuitBreaker; // For handling circuit breaker pattern
-using API.Models; // Where your FailedRequest model is defined
-using API.Services; // Where your IFailedRequestQueue service is defined
+using OpenTelemetry;
+using OpenTelemetry.Context.Propagation;
+using OpenTelemetry.Trace;
+using Polly.CircuitBreaker;
+using API.Models;
+using API.Services;
 
 namespace API.Controllers {
-    // Attribute to mark this class as an API controller with route and API behavior
     [ApiController]
     [Route("[controller]")]
     public class MainController : ControllerBase {
-        // Dependency injection fields
-        private readonly IFailedRequestQueue _failedRequestQueue; // Queue for failed requests
-        private readonly IHttpClientFactory _clientFactory; // Factory for creating HTTP clients
-        private readonly Tracer _tracer; // Tracer for OpenTelemetry
 
-        // Constructor with dependency injection
+        private readonly IHttpClientFactory _clientFactory;
+        private readonly IFailedRequestQueue _failedRequestQueue;
+
+        /*** START OF IMPORTANT CONFIGURATION ***/
+        private readonly Tracer _tracer;
+
         public MainController(IHttpClientFactory httpClientFactory, Tracer tracer, IFailedRequestQueue failedRequestQueue) {
             _clientFactory = httpClientFactory;
             _tracer = tracer;
-            _failedRequestQueue = failedRequestQueue;
+            _failedRequestQueue = failedRequestQueue; // Initialize the queue.
         }
 
-        // API endpoint for sum operation
+        /*** END OF IMPORTANT CONFIGURATION ***/
+
+
         [HttpPost("Sum")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(double))]
         public async Task<IActionResult> Sum([FromBody] Problem problem) {
-            // Start a new tracing span
             using var activity = _tracer.StartActiveSpan("Sum");
-            var jsonRequest = JsonSerializer.Serialize(problem); // Serialize request body to JSON
-            var sumServiceUrl = "http://sum-service:80"; // URL of the sum service
-
             try {
                 var client = _clientFactory.CreateClient("SumServiceClient");
-                // Inject tracing context into the outbound HTTP request
+                var sumServiceUrl = "http://sum-service:80";
+
                 var activityContext = activity?.Context ?? Activity.Current?.Context ?? default;
                 var propagationContext = new PropagationContext(activityContext, Baggage.Current);
                 var propagator = new TraceContextPropagator();
                 propagator.Inject(propagationContext, problem, (msg, key, value) => { msg.Headers.Add(key, value); });
 
-                // Create HTTP content and make a POST request
+                var jsonRequest = JsonSerializer.Serialize(problem);
                 var content = new StringContent(jsonRequest, System.Text.Encoding.UTF8, "application/json");
-                var response = await client.PostAsync($"{sumServiceUrl}/Sum", content);
 
-                // Handle unsuccessful response
+                var response = await client.PostAsync($"{sumServiceUrl}/Sum", content);
                 if (!response.IsSuccessStatusCode) throw new HttpRequestException();
 
-                // Parse response and return result
                 var jsonResponse = await response.Content.ReadAsStringAsync();
-                var result = JsonSerializer.Deserialize<double>(jsonResponse, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                var result = JsonSerializer.Deserialize<double>(jsonResponse,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 return Ok(result);
             }
             catch (BrokenCircuitException) {
-                // Log and enqueue request if circuit breaker is open
+                var sumServiceUrl = "http://sum-service:80";
+                // Log the issue.
                 Monitoring.Monitoring.Log.Warning("SumService is down, circuit breaker opened.");
+
+                // Enqueue the failed request for later retry.
                 _failedRequestQueue.Enqueue(new FailedRequest {
-                    Url = $"{sumServiceUrl}/Sum",
+                    Url = sumServiceUrl,
                     Method = HttpMethod.Post,
                     Headers = new Dictionary<string, string> { { "Content-Type", "application/json" } },
-                    Body = jsonRequest
+                    Body = JsonSerializer.Serialize(problem)
                 });
+
                 return StatusCode(StatusCodes.Status503ServiceUnavailable, "SumService is down, circuit breaker opened.");
             }
             catch (HttpRequestException) {
-                // Log and return service unavailable error
                 Monitoring.Monitoring.Log.Error("SumService is unavailable");
                 return StatusCode(StatusCodes.Status503ServiceUnavailable, "Service unavailable");
             }
         }
 
-        // Similar structure for "Subtract" and "History" endpoints...
-        // Each endpoint attempts an operation, logs and queues failed requests, and handles exceptions accordingly.
+
+        [HttpPost("Subtract")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(double))]
+        public async Task<IActionResult> Subtract([FromBody] Problem problem) {
+            try {
+                var client = _clientFactory.CreateClient("SubtractServiceClient");
+                var subtractServiceUrl = "http://subtract-service:80";
+
+                var jsonRequest = JsonSerializer.Serialize(problem);
+                var content = new StringContent(jsonRequest, System.Text.Encoding.UTF8, "application/json");
+
+                var response = await client.PostAsync($"{subtractServiceUrl}/Subtract", content);
+
+                if (!response.IsSuccessStatusCode) throw new HttpRequestException();
+                
+                var jsonResponse = await response.Content.ReadAsStringAsync();
+                var result = JsonSerializer.Deserialize<double>(jsonResponse,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                return Ok(result);
+            }
+            catch (BrokenCircuitException) {
+                var subtractServiceUrl = "http://subtract-service:80";
+                Monitoring.Monitoring.Log.Warning("SubtractService is down, circuit breaker opened.");
+                
+                // Enqueue the failed request for later retry.
+                _failedRequestQueue.Enqueue(new FailedRequest {
+                    Url = subtractServiceUrl,
+                    Method = HttpMethod.Post,
+                    Headers = new Dictionary<string, string> { { "Content-Type", "application/json" } },
+                    Body = JsonSerializer.Serialize(problem)
+                });
+
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, "SumService is down, circuit breaker opened.");
+            }
+            catch (HttpRequestException) {
+                Monitoring.Monitoring.Log.Error("SubtractService is unavailable");
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, "Service unavailable");
+            }
+        }
+
+        [HttpGet("History")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(List<Operation>))]
+        public async Task<IActionResult> History() {
+            var client = _clientFactory.CreateClient();
+            var historyServiceUrl = "http://history-service:80";
+
+            var response = await client.GetAsync($"{historyServiceUrl}/History");
+
+            if (response.IsSuccessStatusCode) {
+                var jsonResponse = await response.Content.ReadAsStringAsync();
+                var result = JsonSerializer.Deserialize<List<Operation>>(jsonResponse,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                return Ok(result);
+            }
+            Monitoring.Monitoring.Log.Error("History service unavailable. Reason: " + response.ReasonPhrase);
+            return StatusCode((int)response.StatusCode, response.ReasonPhrase);
+
+        }
     }
 }
