@@ -45,13 +45,27 @@ builder.Services.AddCors(o => o.AddPolicy("MyPolicy", builder =>
         .AllowAnyHeader();
 }));
 
-builder.Services.AddHttpClient("SumServiceClient", client =>
-    {
+// HTTP Circuit breakers
+
+var retryPolicy = HttpPolicyExtensions
+    .HandleTransientHttpError()
+    .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
+
+var circuitBreakerPolicy = HttpPolicyExtensions
+    .HandleTransientHttpError()
+    .CircuitBreakerAsync(2, TimeSpan.FromSeconds(30));
+
+var policies = Policy.WrapAsync(retryPolicy, circuitBreakerPolicy);
+
+builder.Services.AddHttpClient("SumServiceClient", client => {
         client.BaseAddress = new Uri("http://sum-service:80");
     })
-    .AddPolicyHandler(HttpPolicyExtensions
-        .HandleTransientHttpError()
-        .CircuitBreakerAsync(2, TimeSpan.FromSeconds(30)));
+    .AddPolicyHandler(policies);
+
+builder.Services.AddHttpClient("SubtractServiceClient", client => {
+        client.BaseAddress = new Uri("http://subtract-service:80");
+    })
+    .AddPolicyHandler(policies);
 
 
 var app = builder.Build();

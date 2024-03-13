@@ -11,9 +11,9 @@ namespace API.Controllers {
     [ApiController]
     [Route("[controller]")]
     public class MainController : ControllerBase {
-        
+
         private readonly IHttpClientFactory _clientFactory;
-        
+
         /*** START OF IMPORTANT CONFIGURATION ***/
         private readonly Tracer _tracer;
 
@@ -21,68 +21,73 @@ namespace API.Controllers {
             _clientFactory = httpClientFactory;
             _tracer = tracer;
         }
-        
+
         /*** END OF IMPORTANT CONFIGURATION ***/
 
         [HttpPost("Sum")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(double))]
-        public async Task<IActionResult> Sum([FromBody] Problem problem)
-        {
+        public async Task<IActionResult> Sum([FromBody] Problem problem) {
             using var activity = _tracer.StartActiveSpan("Sum");
-            try
-            {
+            try {
                 var client = _clientFactory.CreateClient("SumServiceClient");
                 var sumServiceUrl = "http://sum-service:80";
-        
+
                 var activityContext = activity?.Context ?? Activity.Current?.Context ?? default;
                 var propagationContext = new PropagationContext(activityContext, Baggage.Current);
                 var propagator = new TraceContextPropagator();
-                propagator.Inject(propagationContext, problem, (msg, key, value) =>
-                {
-                    msg.Headers.Add(key, value);
-                });
+                propagator.Inject(propagationContext, problem, (msg, key, value) => { msg.Headers.Add(key, value); });
 
                 var jsonRequest = JsonSerializer.Serialize(problem);
                 var content = new StringContent(jsonRequest, System.Text.Encoding.UTF8, "application/json");
-        
+
                 var response = await client.PostAsync($"{sumServiceUrl}/Sum", content);
                 if (!response.IsSuccessStatusCode) throw new HttpRequestException();
-        
+
                 var jsonResponse = await response.Content.ReadAsStringAsync();
-                var result = JsonSerializer.Deserialize<double>(jsonResponse, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                var result = JsonSerializer.Deserialize<double>(jsonResponse,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 return Ok(result);
             }
-            catch (BrokenCircuitException)
-            {
+            catch (BrokenCircuitException) {
+                Monitoring.Monitoring.Log.Warning("SumService is down, circuit breaker opened.");
                 return Ok(problem.OperandA + problem.OperandB);
             }
-            catch (HttpRequestException)
-            {
+            catch (HttpRequestException) {
+                Monitoring.Monitoring.Log.Error("SumService is unavailable");
                 return StatusCode(StatusCodes.Status503ServiceUnavailable, "Service unavailable");
             }
         }
 
-        
+
         [HttpPost("Subtract")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(double))]
         public async Task<IActionResult> Subtract([FromBody] Problem problem) {
-            var client = _clientFactory.CreateClient();
-            var sumServiceUrl = "http://subtract-service:80";
-            
-            var jsonRequest = JsonSerializer.Serialize(problem);
-            var content = new StringContent(jsonRequest, System.Text.Encoding.UTF8, "application/json");
-            
-            var response = await client.PostAsync($"{sumServiceUrl}/Subtract", content);
-            
-            if (response.IsSuccessStatusCode) {
+            try {
+                var client = _clientFactory.CreateClient("SubtractServiceClient");
+                var subtractServiceUrl = "http://subtract-service:80";
+
+                var jsonRequest = JsonSerializer.Serialize(problem);
+                var content = new StringContent(jsonRequest, System.Text.Encoding.UTF8, "application/json");
+
+                var response = await client.PostAsync($"{subtractServiceUrl}/Subtract", content);
+
+                if (!response.IsSuccessStatusCode) throw new HttpRequestException();
+                
                 var jsonResponse = await response.Content.ReadAsStringAsync();
-                var result = JsonSerializer.Deserialize<double>(jsonResponse, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                var result = JsonSerializer.Deserialize<double>(jsonResponse,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 return Ok(result);
-            } 
-            
-            return StatusCode((int)response.StatusCode, response.ReasonPhrase);
+            }
+            catch (BrokenCircuitException) {
+                Monitoring.Monitoring.Log.Warning("SubtractService is down, circuit breaker opened.");
+                return Ok(problem.OperandA - problem.OperandB);
+            }
+            catch (HttpRequestException) {
+                Monitoring.Monitoring.Log.Error("SubtractService is unavailable");
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, "Service unavailable");
+            }
         }
-        
+
         [HttpGet("History")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(List<Operation>))]
         public async Task<IActionResult> History() {
@@ -90,14 +95,16 @@ namespace API.Controllers {
             var historyServiceUrl = "http://history-service:80";
 
             var response = await client.GetAsync($"{historyServiceUrl}/History");
-            
+
             if (response.IsSuccessStatusCode) {
                 var jsonResponse = await response.Content.ReadAsStringAsync();
-                var result = JsonSerializer.Deserialize<List<Operation>>(jsonResponse, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                var result = JsonSerializer.Deserialize<List<Operation>>(jsonResponse,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 return Ok(result);
-            } 
-            
+            }
+            Monitoring.Monitoring.Log.Error("History service unavailable. Reason: " + response.ReasonPhrase);
             return StatusCode((int)response.StatusCode, response.ReasonPhrase);
+
         }
     }
 }
