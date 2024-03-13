@@ -42,7 +42,7 @@ namespace SumService.Controllers {
                 var activityContext = activity?.Context ?? Activity.Current?.Context ?? default;
                 var propagationContext = new PropagationContext(activityContext, Baggage.Current);
                 var propagatorInject = new TraceContextPropagator();
-                propagatorInject.Inject(propagationContext, operation, (msg, key, value) => { msg.Headers.Add(key, value); });
+                propagatorInject.Inject(propagationContext, problem, (msg, key, value) => { msg.Headers.Add(key, value); });
                 
                 var jsonRequest = JsonSerializer.Serialize(operation);
                 var content = new StringContent(jsonRequest, System.Text.Encoding.UTF8, "application/json");
