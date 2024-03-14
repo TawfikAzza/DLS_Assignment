@@ -13,7 +13,8 @@ services:
     networks:
       - extranet
     deploy:
-      replicas: 1
+      replicas: 3
+      
   history-service:
     image: history-service
     build:
@@ -26,7 +27,8 @@ services:
     networks:
       - intranet
     deploy:
-      replicas: 1
+      replicas: 3
+
   subtract-service:
     image: subtract-service
     build:
@@ -41,7 +43,8 @@ services:
     networks:
       - intranet
     deploy:
-      replicas: 1
+      replicas: 3
+
   sum-service:
     image: sum-service
     build:
@@ -56,7 +59,8 @@ services:
     networks:
       - intranet
     deploy:
-      replicas: 1
+      replicas: 3
+
   api-service:
     image: api-service
     build:
@@ -75,6 +79,9 @@ services:
     networks:
       - intranet
       - extranet
+    deploy:
+      replicas: 3
+
   zipkin:
     image: openzipkin/zipkin
     ports:
@@ -82,6 +89,7 @@ services:
     networks:
       - extranet
       - intranet
+
   seq:
     image: datalust/seq:latest
     ports:
