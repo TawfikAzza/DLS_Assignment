@@ -92,13 +92,9 @@ services:
       - intranet
     environment:
       ACCEPT_EULA: Y
-    volumes:
-      - seq-data:/data
 
 networks:
   intranet:
     external: false
   extranet:
     external: true
-volumes:
-  seq-data:

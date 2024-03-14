@@ -6,10 +6,10 @@ using Polly.Extensions.Http;
 var builder = WebApplication.CreateBuilder(args);
 
 /*** START OF IMPORTANT CONFIGURATION ***/
-var serviceName = "MyTracer";
+var serviceName = "SubtractService";
 var serviceVersion = "1.0.0";
 
-builder.Services.AddOpenTelemetry().Setup();
+builder.Services.AddOpenTelemetry().Setup(serviceName, serviceVersion);
 builder.Services.AddSingleton(TracerProvider.Default.GetTracer(serviceName));
 /*** END OF IMPORTANT CONFIGURATION ***/
 
