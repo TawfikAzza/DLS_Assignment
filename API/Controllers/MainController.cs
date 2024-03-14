@@ -48,8 +48,8 @@ namespace API.Controllers {
                     new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 return Ok(result);
             }
-            catch (BrokenCircuitException) {
-                Monitoring.Monitoring.Log.Warning("SumService is down, circuit breaker opened.");
+            catch (BrokenCircuitException e) {
+                Monitoring.Monitoring.Log.Warning("SumService is down, circuit breaker opened. Exception: {0}", e);
                 return Ok(problem.OperandA + problem.OperandB);
             }
             catch (HttpRequestException) {
@@ -84,8 +84,8 @@ namespace API.Controllers {
                     new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 return Ok(result);
             }
-            catch (BrokenCircuitException) {
-                Monitoring.Monitoring.Log.Warning("SubtractService is down, circuit breaker opened.");
+            catch (BrokenCircuitException e) {
+                Monitoring.Monitoring.Log.Warning("SubtractService is down, circuit breaker opened. Exception: {0}", e);
                 return Ok(problem.OperandA - problem.OperandB);
             }
             catch (HttpRequestException) {
@@ -97,20 +97,32 @@ namespace API.Controllers {
         [HttpGet("History")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(List<Operation>))]
         public async Task<IActionResult> History() {
-            var client = _clientFactory.CreateClient();
-            var historyServiceUrl = "http://history-service:80";
+            using var activity = _tracer.StartActiveSpan("History");
+            try {
+                var client = _clientFactory.CreateClient("HistoryServiceClient");
+                var historyServiceUrl = "http://history-service:80";
 
-            var response = await client.GetAsync($"{historyServiceUrl}/History");
+                var activityContext = activity?.Context ?? Activity.Current?.Context ?? default;
+                var propagationContext = new PropagationContext(activityContext, Baggage.Current);
+                var propagator = new TraceContextPropagator();
+                var request = new HttpRequestMessage(HttpMethod.Get, $"{historyServiceUrl}/History");
+                propagator.Inject(propagationContext, request, (msg, key, value) => { msg.Headers.Add(key, value); });
 
-            if (response.IsSuccessStatusCode) {
-                var jsonResponse = await response.Content.ReadAsStringAsync();
-                var result = JsonSerializer.Deserialize<List<Operation>>(jsonResponse,
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                return Ok(result);
+                var response = await client.SendAsync(request);
+
+                if (response.IsSuccessStatusCode) {
+                    var jsonResponse = await response.Content.ReadAsStringAsync();
+                    var result = JsonSerializer.Deserialize<List<Operation>>(jsonResponse,
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    return Ok(result);
+                }
+                Monitoring.Monitoring.Log.Error("History service unavailable. Reason: " + response.ReasonPhrase);
+                return StatusCode((int)response.StatusCode, response.ReasonPhrase);
             }
-            Monitoring.Monitoring.Log.Error("History service unavailable. Reason: " + response.ReasonPhrase);
-            return StatusCode((int)response.StatusCode, response.ReasonPhrase);
-
+            catch (HttpRequestException) {
+                Monitoring.Monitoring.Log.Error("Error while accessing History service.");
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, "Service unavailable");
+            }
         }
     }
 }

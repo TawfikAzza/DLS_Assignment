@@ -99,14 +99,10 @@ services:
       - extranet
       - intranet
     environment:
-      - ACCEPT_EULA=Y
-    volumes:
-      - seq-data:/data
+      ACCEPT_EULA: Y
 
 networks:
   intranet:
     external: false
   extranet:
     external: true
-volumes:
-  seq-data:

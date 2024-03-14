@@ -22,6 +22,9 @@ public class CalcContext : DbContext
         modelBuilder.Entity<Operation>()
             .Property(p => p.Id)
             .ValueGeneratedOnAdd();
+        //Ignore the mapping of Headers property
+        modelBuilder.Entity<Operation>()
+            .Ignore(p => p.Headers);
     }
     
     public DbSet<Operation> OperationTable { get; set; }
