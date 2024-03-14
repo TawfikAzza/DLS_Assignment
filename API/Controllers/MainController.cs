@@ -78,9 +78,15 @@ namespace API.Controllers {
         [HttpPost("Subtract")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(double))]
         public async Task<IActionResult> Subtract([FromBody] Problem problem) {
+        using var activity = _tracer.StartActiveSpan("Subtract");
             try {
                 var client = _clientFactory.CreateClient("SubtractServiceClient");
                 var subtractServiceUrl = "http://subtract-service:80";
+
+                var activityContext = activity?.Context ?? Activity.Current?.Context ?? default;
+                var propagationContext = new PropagationContext(activityContext, Baggage.Current);
+                var propagator = new TraceContextPropagator();
+                propagator.Inject(propagationContext, problem, (msg, key, value) => { msg.Headers.Add(key, value); });
 
                 var jsonRequest = JsonSerializer.Serialize(problem);
                 var content = new StringContent(jsonRequest, System.Text.Encoding.UTF8, "application/json");
