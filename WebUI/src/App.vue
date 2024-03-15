@@ -9,7 +9,17 @@ const history = ref<any>([]);
 
 const fetchHistory = async () => {
   const response = await fetch('http://localhost/Main/History');
-  history.value = await response.json();
+  for (const item of await response.json()) {
+    history.value
+      .push({
+        a: item.operandA,
+        b: item.operandB,
+        operation: item.operationType === 'sum' ? '+'
+                : item.operationType === 'subtract' ? '-'
+                : '', //Invalid operation
+        result: item.result,
+      });
+  }
 };
 
 const a = ref<number | null>(null);
@@ -26,6 +36,7 @@ const calculate = async () => { //TODO: API call
   const problem = {
     operandA: a.value,
     operandB: b.value,
+    Headers: {},
   };
 
   const request = {

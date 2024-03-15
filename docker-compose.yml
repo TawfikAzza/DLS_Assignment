@@ -14,6 +14,7 @@ services:
       - extranet
     deploy:
       replicas: 1
+      
   history-service:
     image: rootedatnight/dls_assigment:history-service
 #    build:
@@ -27,6 +28,7 @@ services:
       - intranet
     deploy:
       replicas: 1
+
   subtract-service:
     image: rootedatnight/dls_assigment:subtract-service
 #    build:
@@ -42,6 +44,7 @@ services:
       - intranet
     deploy:
       replicas: 1
+
   sum-service:
     image: rootedatnight/dls_assigment:sum-service
 #    build:
@@ -57,6 +60,7 @@ services:
       - intranet
     deploy:
       replicas: 1
+
   api-service:
     image: rootedatnight/dls_assigment:api-service
 #    build:
@@ -75,6 +79,9 @@ services:
     networks:
       - intranet
       - extranet
+    deploy:
+      replicas: 1
+
   zipkin:
     image: openzipkin/zipkin
     ports:
@@ -82,6 +89,7 @@ services:
     networks:
       - extranet
       - intranet
+
   seq:
     image: datalust/seq:latest
     ports:
@@ -92,13 +100,9 @@ services:
       - intranet
     environment:
       ACCEPT_EULA: Y
-    volumes:
-      - seq-data:/data
 
 networks:
   intranet:
     external: false
   extranet:
     external: true
-volumes:
-  seq-data:

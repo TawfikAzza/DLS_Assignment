@@ -23,11 +23,8 @@ public static class Monitoring
             .CreateLogger();
     }
     
-    public static OpenTelemetryBuilder Setup(this OpenTelemetryBuilder builder)
+    public static OpenTelemetryBuilder Setup(this OpenTelemetryBuilder builder, string serviceName, string serviceVersion)
     {
-        var serviceName = "MyTracer";
-        var serviceVersion = "1.0.0";
-        
         return builder.WithTracing(tcb =>
         {
             tcb

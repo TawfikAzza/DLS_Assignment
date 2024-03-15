@@ -5,7 +5,7 @@
         public double OperandB { get; set; }
         public string OperationType { get; set; }
         public double Result { get; set; }
-        
-        public Dictionary<string,string> Headers { get; set; }
+
+        public Dictionary<string, string> Headers { get; set; } = new(); //To avoid null reference exception
     }
 }

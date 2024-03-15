@@ -143,12 +143,12 @@ docker network create --driver=overlay --scope=swarm <NETWORK-NAME>
 3. Deploy the stack with:
 
    ```bash
-   docker stack deploy -c docker-compose.yml DLS_ASSIGMENT_SWARM
+   docker stack deploy -c docker-compose.yml DLS_ASSIGNMENT_SWARM
    ```
 
 ## Step 5: Managing the Swarm
 
-- **View services**: `docker stack services DLS_ASSIGMENT_SWARM`
+- **View services**: `docker stack services DLS_ASSIGNMENT_SWARM`
 - **Scale services**: `docker service scale <SERVICE-NAME>=<NUM-REPLICAS>`
 > To automatically have a set number of replicas for a service, update the docker-compose file like so:
 ```yaml
