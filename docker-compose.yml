@@ -13,7 +13,7 @@ services:
     networks:
       - extranet
     deploy:
-      replicas: 3
+      replicas: 1
       
   history-service:
     image: history-service
@@ -27,7 +27,7 @@ services:
     networks:
       - intranet
     deploy:
-      replicas: 3
+      replicas: 1
 
   subtract-service:
     image: subtract-service
@@ -43,7 +43,7 @@ services:
     networks:
       - intranet
     deploy:
-      replicas: 3
+      replicas: 1
 
   sum-service:
     image: sum-service
@@ -59,7 +59,7 @@ services:
     networks:
       - intranet
     deploy:
-      replicas: 3
+      replicas: 1
 
   api-service:
     image: api-service
@@ -80,7 +80,7 @@ services:
       - intranet
       - extranet
     deploy:
-      replicas: 3
+      replicas: 1
 
   zipkin:
     image: openzipkin/zipkin
