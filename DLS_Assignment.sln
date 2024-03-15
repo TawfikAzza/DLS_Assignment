@@ -1,5 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
+# 
+VisualStudioVersion = 17.5.002.0
+MinimumVisualStudioVersion = 
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "API", "API\API.csproj", "{1CA4E080-C200-405B-995F-3700570DA6DA}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SumService", "SumService\SumService.csproj", "{CDA37F64-ED29-446C-B4D9-26A0C73AAF3F}"
@@ -11,11 +14,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Root", "Root", "{0DD12969-9
 		docker-compose.yml = docker-compose.yml
 	EndProjectSection
 EndProject
-
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Domain", "Domain\Domain.csproj", "{9B81F8E9-324C-487C-AD11-36479A03134C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Monitoring", "Monitoring\Monitoring.csproj", "{215E71A3-67BE-4F85-820C-E3C80DA95D11}"
-
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SubtractService", "SubtractService\SubtractService.csproj", "{663C8780-2DCA-4C31-B0DA-21127C08D312}"
 EndProject
@@ -37,20 +38,20 @@ Global
 		{F91A15FD-05B6-4554-A01D-B2E8AA4C5506}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F91A15FD-05B6-4554-A01D-B2E8AA4C5506}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F91A15FD-05B6-4554-A01D-B2E8AA4C5506}.Release|Any CPU.Build.0 = Release|Any CPU
-
 		{9B81F8E9-324C-487C-AD11-36479A03134C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{9B81F8E9-324C-487C-AD11-36479A03134C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9B81F8E9-324C-487C-AD11-36479A03134C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9B81F8E9-324C-487C-AD11-36479A03134C}.Release|Any CPU.Build.0 = Release|Any CPU
-
 		{215E71A3-67BE-4F85-820C-E3C80DA95D11}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{215E71A3-67BE-4F85-820C-E3C80DA95D11}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{215E71A3-67BE-4F85-820C-E3C80DA95D11}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{215E71A3-67BE-4F85-820C-E3C80DA95D11}.Release|Any CPU.Build.0 = Release|Any CPU
-
 		{663C8780-2DCA-4C31-B0DA-21127C08D312}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{663C8780-2DCA-4C31-B0DA-21127C08D312}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{663C8780-2DCA-4C31-B0DA-21127C08D312}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{663C8780-2DCA-4C31-B0DA-21127C08D312}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
 	EndGlobalSection
 EndGlobal

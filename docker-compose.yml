@@ -2,10 +2,10 @@
 
 services:
   web-ui:
-    image: web-ui
-    build:
-      context: WebUI
-      dockerfile: Dockerfile
+    image: rootedatnight/dls_assigment:web-ui
+#    build:
+#      context: WebUI
+#      dockerfile: Dockerfile
     ports:
       - "8080:8080"
     depends_on: 
@@ -16,10 +16,10 @@ services:
       replicas: 1
       
   history-service:
-    image: history-service
-    build:
-      context: .
-      dockerfile: HistoryService/Dockerfile
+    image: rootedatnight/dls_assigment:history-service
+#    build:
+#      context: .
+#      dockerfile: HistoryService/Dockerfile
     environment:
       - ASPNETCORE_URLS=http://+:80
     ports:
@@ -30,10 +30,10 @@ services:
       replicas: 1
 
   subtract-service:
-    image: subtract-service
-    build:
-      context: .
-      dockerfile: SubtractService/Dockerfile
+    image: rootedatnight/dls_assigment:subtract-service
+#    build:
+#      context: .
+#      dockerfile: SubtractService/Dockerfile
     environment:
       - ASPNETCORE_URLS=http://+:80
     ports:
@@ -46,10 +46,10 @@ services:
       replicas: 1
 
   sum-service:
-    image: sum-service
-    build:
-      context: .
-      dockerfile: SumService/Dockerfile
+    image: rootedatnight/dls_assigment:sum-service
+#    build:
+#      context: .
+#      dockerfile: SumService/Dockerfile
     environment:
       - ASPNETCORE_URLS=http://+:80
     ports:
@@ -62,10 +62,10 @@ services:
       replicas: 1
 
   api-service:
-    image: api-service
-    build:
-      context: .
-      dockerfile: API/Dockerfile
+    image: rootedatnight/dls_assigment:api-service
+#    build:
+#      context: .
+#      dockerfile: API/Dockerfile
     environment:
       - ASPNETCORE_URLS=http://+:80
       - ASPNETCORE_ENVIRONMENT=Development

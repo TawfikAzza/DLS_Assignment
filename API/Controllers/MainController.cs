@@ -6,6 +6,8 @@ using OpenTelemetry;
 using OpenTelemetry.Context.Propagation;
 using OpenTelemetry.Trace;
 using Polly.CircuitBreaker;
+using API.Models;
+using API.Services;
 
 namespace API.Controllers {
     [ApiController]
@@ -13,16 +15,19 @@ namespace API.Controllers {
     public class MainController : ControllerBase {
 
         private readonly IHttpClientFactory _clientFactory;
+        private readonly IFailedRequestQueue _failedRequestQueue;
 
         /*** START OF IMPORTANT CONFIGURATION ***/
         private readonly Tracer _tracer;
 
-        public MainController(IHttpClientFactory httpClientFactory, Tracer tracer) {
+        public MainController(IHttpClientFactory httpClientFactory, Tracer tracer, IFailedRequestQueue failedRequestQueue) {
             _clientFactory = httpClientFactory;
             _tracer = tracer;
+            _failedRequestQueue = failedRequestQueue; // Initialize the queue.
         }
 
         /*** END OF IMPORTANT CONFIGURATION ***/
+
 
         [HttpPost("Sum")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(double))]
@@ -48,9 +53,21 @@ namespace API.Controllers {
                     new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 return Ok(result);
             }
+        feature-retry_logic_queue_healthcheck
             catch (BrokenCircuitException e) {
+                var sumServiceUrl = "http://sum-service:80";
+                // Log the issue.
                 Monitoring.Monitoring.Log.Warning("SumService is down, circuit breaker opened. Exception: {0}", e);
-                return Ok(problem.OperandA + problem.OperandB);
+
+                // Enqueue the failed request for later retry.
+                _failedRequestQueue.Enqueue(new FailedRequest {
+                    Url = sumServiceUrl,
+                    Method = HttpMethod.Post,
+                    Headers = new Dictionary<string, string> { { "Content-Type", "application/json" } },
+                    Body = JsonSerializer.Serialize(problem)
+                });
+
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, "SumService is down, circuit breaker opened.");
             }
             catch (HttpRequestException) {
                 Monitoring.Monitoring.Log.Error("SumService is unavailable");
@@ -84,9 +101,20 @@ namespace API.Controllers {
                     new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 return Ok(result);
             }
+        feature-retry_logic_queue_healthcheck
             catch (BrokenCircuitException e) {
+                var subtractServiceUrl = "http://subtract-service:80";
                 Monitoring.Monitoring.Log.Warning("SubtractService is down, circuit breaker opened. Exception: {0}", e);
-                return Ok(problem.OperandA - problem.OperandB);
+                
+                // Enqueue the failed request for later retry.
+                _failedRequestQueue.Enqueue(new FailedRequest {
+                    Url = subtractServiceUrl,
+                    Method = HttpMethod.Post,
+                    Headers = new Dictionary<string, string> { { "Content-Type", "application/json" } },
+                    Body = JsonSerializer.Serialize(problem)
+                });
+
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, "SumService is down, circuit breaker opened.");
             }
             catch (HttpRequestException) {
                 Monitoring.Monitoring.Log.Error("SubtractService is unavailable");

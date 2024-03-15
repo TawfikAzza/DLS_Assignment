@@ -2,7 +2,7 @@ using Polly;
 using Polly.Extensions.Http;
 using Monitoring;
 using OpenTelemetry.Trace;
-
+using API.Services;
 
 var  MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 
@@ -14,6 +14,8 @@ var serviceVersion = "1.0.0";
 
 builder.Services.AddOpenTelemetry().Setup(serviceName, serviceVersion);
 builder.Services.AddSingleton(TracerProvider.Default.GetTracer(serviceName));
+builder.Services.AddSingleton<IFailedRequestQueue, InMemoryFailedRequestQueue>();
+
 /*** END OF IMPORTANT CONFIGURATION ***/
 
 builder.Services.AddCors(options =>
@@ -67,6 +69,7 @@ builder.Services.AddHttpClient("SubtractServiceClient", client => {
     })
     .AddPolicyHandler(policies);
 
+builder.Services.AddHostedService<FailedRequestProcessor>();
 
 var app = builder.Build();
 
