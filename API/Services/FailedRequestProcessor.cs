@@ -1,13 +1,15 @@
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Text;
 using API.Models;
 using API.Services;
+using Microsoft.Extensions.Hosting;
+using System.Text.Json;
 
 public class FailedRequestProcessor : BackgroundService
 {
     private readonly IFailedRequestQueue _failedRequestQueue;
     private readonly IHttpClientFactory _clientFactory;
+    private const int MaxRetries = 3; // Maximum number of retries for a failed request
 
     public FailedRequestProcessor(IFailedRequestQueue failedRequestQueue, IHttpClientFactory clientFactory)
     {
@@ -26,30 +28,48 @@ public class FailedRequestProcessor : BackgroundService
                     var failedRequest = _failedRequestQueue.Dequeue();
                     if (failedRequest != null)
                     {
-                        try
+                        int retryCount = 0;
+                        bool requestProcessed = false;
+
+                        while (retryCount < MaxRetries && !requestProcessed && !stoppingToken.IsCancellationRequested)
                         {
-                            var client = _clientFactory.CreateClient();
-                            var httpRequestMessage = new HttpRequestMessage(failedRequest.Method, failedRequest.Url)
+                            try
                             {
-                                Content = new StringContent(failedRequest.Body, Encoding.UTF8, "application/json")
-                            };
+                                var client = _clientFactory.CreateClient();
+                                var httpRequestMessage = new HttpRequestMessage(failedRequest.Method, failedRequest.Url)
+                                {
+                                    Content = new StringContent(failedRequest.Body, Encoding.UTF8, "application/json")
+                                };
 
-                            foreach (var header in failedRequest.Headers)
-                            {
-                                httpRequestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value);
+                                foreach (var header in failedRequest.Headers)
+                                {
+                                    httpRequestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value);
+                                }
+
+                                var response = await client.SendAsync(httpRequestMessage, stoppingToken);
+
+                                if (response.IsSuccessStatusCode)
+                                {
+                                    requestProcessed = true;
+                                }
+                                else
+                                {
+                                    Monitoring.Monitoring.Log.Warning($"Failed to process request to {failedRequest.Url}. Status Code: {response.StatusCode}. Attempt {retryCount + 1} of {MaxRetries}.");
+                                    retryCount++;
+                                    await Task.Delay(TimeSpan.FromSeconds(2 ^ retryCount), stoppingToken); // Exponential back-off
+                                }
                             }
-
-                            var response = await client.SendAsync(httpRequestMessage, stoppingToken);
-
-                            // Handle response as needed
-                            if (!response.IsSuccessStatusCode)
+                            catch (Exception ex)
                             {
-                                // Optionally handle failed resend attempts here
+                                Monitoring.Monitoring.Log.Error($"Error processing failed request to {failedRequest.Url}. Attempt {retryCount + 1} of {MaxRetries}. Exception: {ex.Message}");
+                                retryCount++;
+                                await Task.Delay(TimeSpan.FromSeconds(2 ^ retryCount), stoppingToken); // Exponential back-off
                             }
                         }
-                        catch
+
+                        if (!requestProcessed)
                         {
-                            // Optionally handle exceptions from resend attempts here
+                            Monitoring.Monitoring.Log.Error($"Failed to process failed request to {failedRequest.Url} after {MaxRetries} attempts.");
                         }
                     }
                 }
@@ -65,11 +85,18 @@ public class FailedRequestProcessor : BackgroundService
         {
             var client = _clientFactory.CreateClient();
             var response = await client.GetAsync(healthCheckUrl, stoppingToken);
-            return response.IsSuccessStatusCode;
+            if (response.IsSuccessStatusCode)
+            {
+                // Optionally parse response
+                return true;
+            }
+
+            Monitoring.Monitoring.Log.Warning($"Health check for {healthCheckUrl} failed with status code: {response.StatusCode}.");
+            return false;
         }
-        catch
+        catch (Exception ex)
         {
-            // Optionally handle exceptions from the health check here
+            Monitoring.Monitoring.Log.Error($"Exception during health check for {healthCheckUrl}. Exception: {ex.Message}");
             return false;
         }
     }
