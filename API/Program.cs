@@ -14,7 +14,8 @@ var serviceVersion = "1.0.0";
 
 builder.Services.AddOpenTelemetry().Setup(serviceName, serviceVersion);
 builder.Services.AddSingleton(TracerProvider.Default.GetTracer(serviceName));
-builder.Services.AddSingleton<IFailedRequestQueue, InMemoryFailedRequestQueue>();
+builder.Services.AddSingleton<IFailedRequestQueueFactory, FailedRequestQueueFactory>();
+builder.Services.AddSingleton<InMemoryFailedRequestQueue>();
 
 /*** END OF IMPORTANT CONFIGURATION ***/
 
@@ -71,6 +72,8 @@ builder.Services.AddHttpClient("SubtractServiceClient", client => {
 
 builder.Services.AddHostedService<FailedRequestProcessor>();
 
+builder.Services.AddHealthChecks();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -86,5 +89,7 @@ app.UseCors(MyAllowSpecificOrigins);
 app.MapControllers();
 
 //app.UseHttpsRedirection();
+
+app.MapHealthChecks("/health");
 
 app.Run();

@@ -38,6 +38,8 @@ builder.Services.AddHttpClient("HistoryServiceClient", client => {
     })
     .AddPolicyHandler(policies);
 
+builder.Services.AddHealthChecks();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -49,5 +51,7 @@ app.UseSwaggerUI();
 app.MapControllers();
 
 //app.UseHttpsRedirection();
+
+app.MapHealthChecks("/health");
 
 app.Run();

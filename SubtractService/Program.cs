@@ -39,6 +39,8 @@ builder.Services.AddHttpClient("HistoryServiceClient", client => {
     })
     .AddPolicyHandler(policies);
 
+builder.Services.AddHealthChecks();
+
 var app = builder.Build();
 
 app.MapControllers();
@@ -48,7 +50,8 @@ app.MapControllers();
     app.UseSwagger();
     app.UseSwaggerUI();
 
-
 //app.UseHttpsRedirection();
+
+app.MapHealthChecks("/health");
 
 app.Run();

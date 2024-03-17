@@ -20,6 +20,9 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddControllers();
 builder.Services.AddDbContext<CalcContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("YourConnectionStringName")));
+
+builder.Services.AddHealthChecks();
+
 var app = builder.Build();
 
 
@@ -28,8 +31,9 @@ var app = builder.Build();
     app.UseSwagger();
     app.UseSwaggerUI();
 
-
 app.MapControllers();
 //app.UseHttpsRedirection();
+
+app.MapHealthChecks("/health");
 
 app.Run();
