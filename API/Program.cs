@@ -72,6 +72,11 @@ builder.Services.AddHttpClient("SubtractServiceClient", client => {
     })
     .AddPolicyHandler(policies);
 
+builder.Services.AddHttpClient("FallbackClient", client => {
+        client.BaseAddress = null;
+    })
+    .AddPolicyHandler(policies);
+
 builder.Services.AddHostedService<FailedRequestProcessor>();
 
 builder.Services.AddHealthChecks();

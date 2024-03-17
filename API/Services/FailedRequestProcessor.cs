@@ -1,9 +1,7 @@
-using System.Net.Http;
 using System.Text;
 using API.Models;
-using API.Services;
-using Microsoft.Extensions.Hosting;
-using System.Text.Json;
+
+namespace API.Services;
 
 public class FailedRequestProcessor : BackgroundService
 {
@@ -45,7 +43,7 @@ public class FailedRequestProcessor : BackgroundService
     {
         try
         {
-            var client = _clientFactory.CreateClient();
+            var client = _clientFactory.CreateClient("FallbackClient");
             var response = await client.GetAsync(healthCheckUrl, cancellationToken);
             return response.IsSuccessStatusCode;
         }
@@ -75,13 +73,14 @@ public class FailedRequestProcessor : BackgroundService
     // Attempts to resend a failed request, retrying up to MaxRetries times with exponential backoff.
     private async Task RetryFailedRequest(FailedRequest failedRequest, CancellationToken cancellationToken)
     {
+        Console.WriteLine(failedRequest.Url);
         int retryCount = 0;
         bool success = false;
         while (retryCount < MaxRetries && !success && !cancellationToken.IsCancellationRequested)
         {
             try
             {
-                var client = _clientFactory.CreateClient();
+                var client = _clientFactory.CreateClient("FallbackClient");
                 var requestMessage = new HttpRequestMessage(failedRequest.Method, failedRequest.Url)
                 {
                     Content = new StringContent(failedRequest.Body, Encoding.UTF8, "application/json")
@@ -123,108 +122,108 @@ public class FailedRequestProcessor : BackgroundService
     }
 }
 /*
-    private async Task<bool> IsServiceHealthy(string healthCheckUrl, CancellationToken stoppingToken)
+private async Task<bool> IsServiceHealthy(string healthCheckUrl, CancellationToken stoppingToken)
+{
+    try
     {
-        try
+        // Create a new HttpClient and send a GET request to the health check URL
+        var client = _clientFactory.CreateClient();
+        var response = await client.GetAsync(healthCheckUrl, stoppingToken);
+        if (response.IsSuccessStatusCode)
         {
-            // Create a new HttpClient and send a GET request to the health check URL
-            var client = _clientFactory.CreateClient();
-            var response = await client.GetAsync(healthCheckUrl, stoppingToken);
-            if (response.IsSuccessStatusCode)
-            {
-                // Return true if the service responds with a success status code, indicating it's healthy
-                return true;
-            }
+            // Return true if the service responds with a success status code, indicating it's healthy
+            return true;
+        }
 
-            // Log a warning if the health check fails
-            Monitoring.Monitoring.Log.Warning($"Health check for {healthCheckUrl} failed with status code: {response.StatusCode}.");
-            return false;
-        }
-        catch (Exception ex)
-        {
-            // Log any exceptions encountered during the health check
-            Monitoring.Monitoring.Log.Error($"Exception during health check for {healthCheckUrl}. Exception: {ex.Message}");
-            return false;
-        }
+        // Log a warning if the health check fails
+        Monitoring.Monitoring.Log.Warning($"Health check for {healthCheckUrl} failed with status code: {response.StatusCode}.");
+        return false;
     }
-
-    // Existing methods like IsServiceHealthy remain unchanged
+    catch (Exception ex)
+    {
+        // Log any exceptions encountered during the health check
+        Monitoring.Monitoring.Log.Error($"Exception during health check for {healthCheckUrl}. Exception: {ex.Message}");
+        return false;
+    }
 }
 
-        // Continuously running background task
-        while (!stoppingToken.IsCancellationRequested)
-        {   
-            var healthCheckUrls = new Dictionary<string, string>
+// Existing methods like IsServiceHealthy remain unchanged
+}
+
+    // Continuously running background task
+    while (!stoppingToken.IsCancellationRequested)
+    {
+        var healthCheckUrls = new Dictionary<string, string>
+        {
+            { "SumServiceQueue", "http://sum-service/health" },
+            { "SubtractServiceQueue", "http://subtract-service/health" },
+            { "HistoryServiceQueue", "http://history-service/health" }
+        };
+        // Use this mapping to fetch the correct URL for health checks
+
+        // Check if the SumService is healthy before attempting to process failed requests
+        if (await IsServiceHealthy("http://sum-service/health", stoppingToken))
+        {
+            // Process each failed request in the queue
+            while (_failedRequestQueue.Count > 0 && !stoppingToken.IsCancellationRequested)
             {
-                { "SumServiceQueue", "http://sum-service/health" },
-                { "SubtractServiceQueue", "http://subtract-service/health" },
-                { "HistoryServiceQueue", "http://history-service/health" }
-            };
-            // Use this mapping to fetch the correct URL for health checks
-            
-            // Check if the SumService is healthy before attempting to process failed requests
-            if (await IsServiceHealthy("http://sum-service/health", stoppingToken))
-            {
-                // Process each failed request in the queue
-                while (_failedRequestQueue.Count > 0 && !stoppingToken.IsCancellationRequested)
+                var failedRequest = _failedRequestQueue.Dequeue();
+                if (failedRequest != null)
                 {
-                    var failedRequest = _failedRequestQueue.Dequeue();
-                    if (failedRequest != null)
+                    int retryCount = 0;
+                    bool requestProcessed = false;
+
+                    // Retry the failed request up to a maximum number of retries
+                    while (retryCount < MaxRetries && !requestProcessed && !stoppingToken.IsCancellationRequested)
                     {
-                        int retryCount = 0;
-                        bool requestProcessed = false;
-
-                        // Retry the failed request up to a maximum number of retries
-                        while (retryCount < MaxRetries && !requestProcessed && !stoppingToken.IsCancellationRequested)
+                        try
                         {
-                            try
+                            var client = _clientFactory.CreateClient();
+                            var httpRequestMessage = new HttpRequestMessage(failedRequest.Method, failedRequest.Url)
                             {
-                                var client = _clientFactory.CreateClient();
-                                var httpRequestMessage = new HttpRequestMessage(failedRequest.Method, failedRequest.Url)
-                                {
-                                    Content = new StringContent(failedRequest.Body, Encoding.UTF8, "application/json")
-                                };
+                                Content = new StringContent(failedRequest.Body, Encoding.UTF8, "application/json")
+                            };
 
-                                // Add headers to the request
-                                foreach (var header in failedRequest.Headers)
-                                {
-                                    httpRequestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value);
-                                }
-
-                                var response = await client.SendAsync(httpRequestMessage, stoppingToken);
-
-                                if (response.IsSuccessStatusCode)
-                                {
-                                    requestProcessed = true; // Mark as processed if the response is successful
-                                }
-                                else
-                                {
-                                    // Log a warning if the request failed, then retry
-                                    Monitoring.Monitoring.Log.Warning($"Failed to process request to {failedRequest.Url}. Status Code: {response.StatusCode}. Attempt {retryCount + 1} of {MaxRetries}.");
-                                    retryCount++;
-                                    // Implement exponential back-off in retry delay
-                                    await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, retryCount)), stoppingToken);
-                                }
+                            // Add headers to the request
+                            foreach (var header in failedRequest.Headers)
+                            {
+                                httpRequestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value);
                             }
-                            catch (Exception ex)
+
+                            var response = await client.SendAsync(httpRequestMessage, stoppingToken);
+
+                            if (response.IsSuccessStatusCode)
                             {
-                                // Log any exceptions encountered during processing
-                                Monitoring.Monitoring.Log.Error($"Error processing failed request to {failedRequest.Url}. Attempt {retryCount + 1} of {MaxRetries}. Exception: {ex.Message}");
+                                requestProcessed = true; // Mark as processed if the response is successful
+                            }
+                            else
+                            {
+                                // Log a warning if the request failed, then retry
+                                Monitoring.Monitoring.Log.Warning($"Failed to process request to {failedRequest.Url}. Status Code: {response.StatusCode}. Attempt {retryCount + 1} of {MaxRetries}.");
                                 retryCount++;
                                 // Implement exponential back-off in retry delay
                                 await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, retryCount)), stoppingToken);
                             }
                         }
-
-                        if (!requestProcessed)
+                        catch (Exception ex)
                         {
-                            // Log an error if the request couldn't be processed after all retries
-                            Monitoring.Monitoring.Log.Error($"Failed to process failed request to {failedRequest.Url} after {MaxRetries} attempts.");
+                            // Log any exceptions encountered during processing
+                            Monitoring.Monitoring.Log.Error($"Error processing failed request to {failedRequest.Url}. Attempt {retryCount + 1} of {MaxRetries}. Exception: {ex.Message}");
+                            retryCount++;
+                            // Implement exponential back-off in retry delay
+                            await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, retryCount)), stoppingToken);
                         }
+                    }
+
+                    if (!requestProcessed)
+                    {
+                        // Log an error if the request couldn't be processed after all retries
+                        Monitoring.Monitoring.Log.Error($"Failed to process failed request to {failedRequest.Url} after {MaxRetries} attempts.");
                     }
                 }
             }
-            // Wait for a minute before the next health check and attempt to process the queue
-            await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
         }
-    }*/
+        // Wait for a minute before the next health check and attempt to process the queue
+        await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+    }
+}*/

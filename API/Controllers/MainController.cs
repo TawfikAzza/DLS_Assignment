@@ -66,7 +66,7 @@ namespace API.Controllers {
                     Body = JsonSerializer.Serialize(problem)
                 });
 
-                return StatusCode(StatusCodes.Status503ServiceUnavailable, "SumService is down, circuit breaker opened.");
+                return Ok(problem.OperandA + problem.OperandB);
             }
             catch (HttpRequestException) {
                 Monitoring.Monitoring.Log.Error("SumService is unavailable");
@@ -106,7 +106,7 @@ namespace API.Controllers {
                     Body = JsonSerializer.Serialize(problem)
                 });
 
-                return StatusCode(StatusCodes.Status503ServiceUnavailable, "SumService is down, circuit breaker opened.");
+                return Ok(problem.OperandA - problem.OperandB);
             }
             catch (HttpRequestException) {
                 Monitoring.Monitoring.Log.Error("SubtractService is unavailable");
