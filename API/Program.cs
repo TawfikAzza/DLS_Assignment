@@ -32,6 +32,13 @@ builder.Services.AddCors(options =>
         });
 });
 
+builder.Services.AddCors(o => o.AddPolicy("MyPolicy", builder =>
+{
+    builder.AllowAnyOrigin()
+        .AllowAnyMethod()
+        .AllowAnyHeader();
+}));
+
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -43,22 +50,15 @@ builder.Services.AddControllers();
 // HERE we add the IHttpClientFactory
 builder.Services.AddHttpClient();
 
-builder.Services.AddCors(o => o.AddPolicy("MyPolicy", builder =>
-{
-    builder.AllowAnyOrigin()
-        .AllowAnyMethod()
-        .AllowAnyHeader();
-}));
-
 // HTTP Circuit breakers
-
-var retryPolicy = HttpPolicyExtensions
-    .HandleTransientHttpError()
-    .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
 
 var circuitBreakerPolicy = HttpPolicyExtensions
     .HandleTransientHttpError()
     .CircuitBreakerAsync(2, TimeSpan.FromSeconds(30));
+
+var retryPolicy = HttpPolicyExtensions
+    .HandleTransientHttpError()
+    .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
 
 var policies = Policy.WrapAsync(retryPolicy, circuitBreakerPolicy);
 
