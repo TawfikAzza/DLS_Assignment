@@ -16,6 +16,8 @@ builder.Services.AddOpenTelemetry().Setup(serviceName, serviceVersion);
 builder.Services.AddSingleton(TracerProvider.Default.GetTracer(serviceName));
 builder.Services.AddSingleton<IFailedRequestQueueFactory, FailedRequestQueueFactory>();
 builder.Services.AddSingleton<InMemoryFailedRequestQueue>();
+builder.Services.AddSingleton<IFailedRequestQueue>(_ => _.GetRequiredService<IFailedRequestQueueFactory>().GetQueue(serviceName));
+builder.Services.AddSingleton<FailedRequestProcessor>();
 
 /*** END OF IMPORTANT CONFIGURATION ***/
 
