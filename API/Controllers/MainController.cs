@@ -34,6 +34,7 @@ namespace API.Controllers {
         public async Task<IActionResult> Sum([FromBody] Problem problem) {
             using var activity = _tracer.StartActiveSpan("Sum");
             try {
+                // Create client
                 var client = _clientFactory.CreateClient("SumServiceClient");
                 var sumServiceUrl = "http://sum-service:80";
 
@@ -45,6 +46,7 @@ namespace API.Controllers {
                 var jsonRequest = JsonSerializer.Serialize(problem);
                 var content = new StringContent(jsonRequest, System.Text.Encoding.UTF8, "application/json");
 
+                // Send request
                 var response = await client.PostAsync($"{sumServiceUrl}/Sum", content);
                 if (!response.IsSuccessStatusCode) throw new HttpRequestException();
 

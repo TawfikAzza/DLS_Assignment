@@ -14,10 +14,6 @@ var serviceVersion = "1.0.0";
 
 builder.Services.AddOpenTelemetry().Setup(serviceName, serviceVersion);
 builder.Services.AddSingleton(TracerProvider.Default.GetTracer(serviceName));
-builder.Services.AddSingleton<IFailedRequestQueueFactory, FailedRequestQueueFactory>();
-builder.Services.AddSingleton<InMemoryFailedRequestQueue>();
-builder.Services.AddSingleton<IFailedRequestQueue>(_ => _.GetRequiredService<IFailedRequestQueueFactory>().GetQueue(serviceName));
-builder.Services.AddSingleton<FailedRequestProcessor>();
 
 /*** END OF IMPORTANT CONFIGURATION ***/
 
@@ -77,8 +73,12 @@ builder.Services.AddHttpClient("FallbackClient", client => {
     })
     .AddPolicyHandler(policies);
 
+// Fall-back QUEUE strategy
 builder.Services.AddHostedService<FailedRequestProcessor>();
-
+builder.Services.AddSingleton<IFailedRequestQueueFactory, FailedRequestQueueFactory>();
+builder.Services.AddSingleton<InMemoryFailedRequestQueue>();
+builder.Services.AddSingleton<IFailedRequestQueue>(_ => _.GetRequiredService<IFailedRequestQueueFactory>().GetQueue(serviceName));
+builder.Services.AddSingleton<FailedRequestProcessor>();
 builder.Services.AddHealthChecks();
 
 var app = builder.Build();
